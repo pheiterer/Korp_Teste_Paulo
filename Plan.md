@@ -30,14 +30,33 @@
 
 ## Épico 2: Microsserviço de Estoque (Gestão de Produtos)
 
-### Issue 3: Setup do Projeto e Arquitetura Base (Estoque)
-- **Descrição:** Inicializar a Web API do Serviço de Estoque utilizando Clean Architecture/DDD.
-- **Stack:** C# .NET 10.
+### Issue 3: Setup do Projeto, Arquitetura Limpa e Fitness Functions (Estoque) - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Inicializar a Web API do Serviço de Estoque utilizando os princípios de Clean Architecture (DDD), configurando a estrutura de camadas, logs estruturados, documentação OpenAPI/Swagger, testes unitários e testes de aptidão arquitetural (Fitness Functions).
+- **Stack:** C# .NET 10, xUnit, NetArchTest.Rules, Moq/NSubstitute, FluentAssertions, Serilog, Swashbuckle.
 - **Tarefas:**
-  - Criar a solução e os projetos lógicos (Domain, Application, Infrastructure, API).
-  - Configurar a injeção de dependência.
-  - Configurar o Swagger/OpenAPI para visualização e teste interativo da API.
-  - Configurar o Serilog para gerar logs estruturados (console e arquivo), garantindo o rastreamento das requisições.
+  - [x] **Estrutura de Solução & Arquitetura Limpa:**
+    - Criar a solução `Estoque.sln` e os projetos de classe/API desacoplados:
+      - `Estoque.Domain` (Entidades, Interfaces de Repositório, Validações de Negócio - *zero dependências externas*).
+      - `Estoque.Application` (Casos de Uso/Services, DTOs, Interfaces - depende apenas do `Domain`).
+      - `Estoque.Infrastructure` (Persistência EF Core, Implementações de Repositório, Comunicação Externa - depende do `Application` e `Domain`).
+      - `Estoque.API` (Controllers/Endpoints, Middlewares, Injeção de Dependência - ponto de entrada da aplicação).
+      - `Estoque.Tests.Unit` (Projeto de testes unitários para Application e Domain).
+      - `Estoque.Tests.Architecture` (Projeto de testes de arquitetura e Fitness Functions).
+  - [x] **Fitness Functions (Validação Arquitetural Automatizada):**
+    - Configurar pacote `NetArchTest.Rules` no projeto `Estoque.Tests.Architecture`.
+    - Escrever testes de aptidão arquitetural para garantir regras de dependência rígidas:
+      - `Domain` não deve ter dependência de nenhuma outra camada (`Application`, `Infrastructure`, `API`).
+      - `Application` não deve depender da camada de `Infrastructure` ou `API`.
+      - Interfaces de repositório devem residir em `Domain` ou `Application` e suas implementações exclusivamente em `Infrastructure`.
+      - Controllers na `API` devem interagir apenas através dos serviços da `Application`.
+  - [x] **Setup de Testes Unitários:**
+    - Criar o projeto `Estoque.Tests.Unit` utilizando `xUnit`, `FluentAssertions` e `Moq` (ou `NSubstitute`).
+    - Configurar a estrutura básica para testes de unidade de regras de domínio e casos de uso da aplicação.
+  - [x] **Observabilidade & Boas Práticas:**
+    - Configurar o **Serilog** para geração de logs estruturados (Console e Arquivo JSON) com enriquecimento de metadados e suporte a `CorrelationId`.
+    - Configurar o **Swagger / OpenAPI** com documentação interativa da API e comentários XML.
+    - Configurar o container nativo de **Injeção de Dependência** (`IServiceCollection`) promovendo desacoplamento de interfaces e Inversão de Controle (`IoC`).
 
 ### Issue 4: Domínio e Persistência de Produtos (Estoque)
 - **Descrição:** Modelar a entidade de Produto e configurar o banco de dados.
