@@ -15,14 +15,16 @@
   - [x] Adicionar containers do Prometheus e Grafana (Observabilidade).
 - **Critério de Aceite:** O comando `docker-compose up -d` deve subir todos os serviços sem erros de porta ou rede.
 
-### Issue 2: Pipeline de CI (GitHub Actions)
-- **Descrição:** Configurar a automação de integração contínua para garantir a integridade do código.
-- **Stack:** GitHub Actions, .NET CLI, Node.js.
+### Issue 2: Automação de CI Poliglota (GitHub Actions) - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Configurar o pipeline de CI/CD para garantir a validação e o build dos três projetos (Angular, C# e Go) a cada nova integração.
+- **Stack:** GitHub Actions, .NET CLI, Node.js, Go.
 - **Tarefas:**
-  - Criar workflow `.github/workflows/ci.yml`.
-  - Adicionar steps para `dotnet build` e `dotnet test` nos projetos de Estoque e Faturamento.
-  - Adicionar steps para `npm install` e `npm run build` no projeto Angular.
-- **Critério de Aceite:** Pipeline deve rodar e passar com sucesso a cada push na branch `main`.
+  - [x] Criar o workflow em `.github/workflows/ci.yml`.
+  - [x] **Step Angular:** Configurar o setup do Node.js, rodar `npm install` e `npm run build` na pasta do frontend.
+  - [x] **Step C# (Estoque):** Configurar o setup do .NET 10, rodar `dotnet restore` e `dotnet build` na pasta da API de Estoque.
+  - [x] **Step Go (Faturamento):** Configurar o setup do Go (ação `actions/setup-go`), rodar `go mod download`, `go build` e `go test` na pasta da API de Faturamento.
+- **Critério de Aceite:** O pipeline deve executar com sucesso os três ambientes em paralelo (ou em sequência) a cada push ou Pull Request na branch `main`.
 
 ---
 
