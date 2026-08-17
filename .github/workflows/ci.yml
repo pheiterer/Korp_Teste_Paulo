@@ -1,0 +1,97 @@
+name: CI Pipeline Poliglota
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - 'feature/**'
+      - '*[0-9]*'
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-angular:
+    name: Build Frontend (Angular)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Angular Frontend
+        run: |
+          if [ -d "frontend" ]; then
+            cd frontend
+            npm install
+            npm run build
+          elif [ -d "src/frontend" ]; then
+            cd src/frontend
+            npm install
+            npm run build
+          else
+            echo "Diretório do Frontend Angular ainda não inicializado (Issue 12). Step ignorado."
+          fi
+
+  build-estoque:
+    name: Build & Test Estoque (C# .NET)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+            9.0.x
+
+      - name: Build & Test C# Service
+        run: |
+          if [ -d "estoque-api" ]; then
+            cd estoque-api
+            dotnet restore
+            dotnet build --no-restore
+            dotnet test --no-build --verbosity normal
+          elif [ -d "src/Estoque" ]; then
+            cd src/Estoque
+            dotnet restore
+            dotnet build --no-restore
+          else
+            echo "Diretório do Serviço de Estoque C# ainda não inicializado (Issue 3). Step ignorado."
+          fi
+
+  build-faturamento:
+    name: Build & Test Faturamento (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Build & Test Go Service
+        run: |
+          if [ -d "faturamento-api" ]; then
+            cd faturamento-api
+            go mod download
+            go build -v ./...
+            go test -v ./...
+          elif [ -d "src/Faturamento" ]; then
+            cd src/Faturamento
+            go mod download
+            go build -v ./...
+            go test -v ./...
+          else
+            echo "Diretório do Serviço de Faturamento Go ainda não inicializado (Issue 7). Step ignorado."
+          fi
