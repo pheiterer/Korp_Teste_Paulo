@@ -1,3 +1,4 @@
+using Estoque.Infrastructure;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +11,9 @@ builder.Host.UseSerilog((context, services, configuration) =>
         .ReadFrom.Services(services)
         .Enrich.FromLogContext();
 });
+
+// Registrar serviços de Infraestrutura (DbContext, Repositórios)
+builder.Services.AddInfrastructure(builder.Configuration);
 
 // Controllers e Swagger
 builder.Services.AddControllers();
