@@ -25,6 +25,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Estoque.API\Estoque.API.csproj" />
     <ProjectReference Include="..\..\src\Estoque.Application\Estoque.Application.csproj" />
     <ProjectReference Include="..\..\src\Estoque.Infrastructure\Estoque.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Estoque.Domain\Estoque.Domain.csproj" />
