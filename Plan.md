@@ -86,13 +86,18 @@
 
 
 
-### Issue 6: Tratamento de Concorrência e Mensageria (Estoque)
-- **Descrição:** Preparar o serviço para deduzir saldos de forma segura e assíncrona.
-- **Stack:** MassTransit (RabbitMQ), StackExchange.Redis.
+### Issue 6: Tratamento de Concorrência e Mensageria (Estoque) - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Preparar o serviço para deduzir saldos de forma segura e assíncrona, garantindo resiliência, idempotência e controle de concorrência distribuída.
+- **Stack:** MassTransit (RabbitMQ), StackExchange.Redis (RedLock.net), EF Core (PostgreSQL).
 - **Tarefas:**
-  - Configurar o MassTransit para consumir a fila de `NotaFiscalEmitidaEvent`.
-  - Ao receber o evento, implementar lógica para atualizar o saldo dos produtos.
-  - Implementar Distributed Lock com Redis (padrão Redlock) para garantir que, se dois eventos tentarem alterar o mesmo produto com saldo 1 simultaneamente, um deles aguarde ou falhe de forma controlada.
+  - [x] Instalar e configurar pacotes NuGet do MassTransit (`MassTransit.RabbitMQ`) e Redis (`RedLock.net` e `StackExchange.Redis`).
+  - [x] Configurar Consumer `NotaFiscalEmitidaConsumer` no MassTransit para processar o evento `NotaFiscalEmitidaEvent`.
+  - [x] Implementar verificação de idempotência no consumidor (utilizando o Redis para registrar `IdempotencyKey:NotaFiscalId`) impedindo o reprocessamento de mensagens duplicadas.
+  - [x] Implementar Distributed Lock com Redis (padrão Redlock com `WaitTime` e `ExpiryTime`) por produto (`lock:produto:{id}`) para garantir controle de concorrência em débitos simultâneos.
+  - [x] Executar a atualização de saldo de múltiplos itens da nota de forma atômica dentro de uma transação de banco de dados (`IDbContextTransaction`).
+  - [x] Configurar política de resiliência e retry com *Exponential Backoff* no MassTransit.
+  - [x] Em caso de falha definitiva no débito de estoque (ex: saldo insuficiente), redirecionar a mensagem para a fila de erro (`_error`) e publicar o evento `AbatimentoEstoqueFalhouEvent` para acionar a saga compensatória.
 
 ### Issue 6.1: Observabilidade, Health Checks e Correlation ID (Estoque)
 - **Descrição:** Implementar o monitoramento de saúde do container de banco de dados PostgreSQL e a captura de Correlation ID para rastreabilidade no microsserviço de Estoque.
