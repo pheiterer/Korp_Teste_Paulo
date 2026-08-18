@@ -68,22 +68,38 @@
   - [x] Gerar e aplicar as Migrations no PostgreSQL.
 - **Critério de Aceite:** Tabela de produtos criada com sucesso no banco de dados.
 
-### Issue 5: Endpoints REST e Regras de Negócio (Estoque)
+### Issue 5: Endpoints REST e Regras de Negócio (Estoque) - [✅ Concluído]
+- **Status:** ✅ Concluído
 - **Descrição:** Implementar os casos de uso para o cadastro e consulta de produtos.
-- **Stack:** C# .NET 10, LINQ.
+- **Stack:** C# .NET 10, LINQ, FluentValidation.
 - **Tarefas:**
-  - Criar endpoint `POST /api/produtos` para Cadastro de Produtos.
-  - Criar endpoint `GET /api/produtos` para listagem.
-  - Utilizar LINQ extensivamente nas consultas ao banco para posterior documentação.
-  - Implementar middleware global de tratamento de erros (*Exception Handling Middleware*) para padronizar as respostas de falha.
+  - [x] Criar endpoint `POST /api/produtos` para Cadastro de Produtos.
+  - [x] Criar endpoint `GET /api/produtos` para listagem com suporte a filtros via querystring (`?busca=...`).
+  - [x] Instalar a biblioteca FluentValidation (`FluentValidation.DependencyInjectionExtensions`) via NuGet.
+  - [x] Criar a classe `CreateProdutoRequestValidator` para garantir as regras: Código (obrigatório, max 50), Descrição (obrigatória, max 200) e Saldo (obrigatório e não pode ser negativo).
+  - [x] Integrar o FluentValidation ao pipeline de requisições para retornar erro `400 Bad Request` com `ValidationProblemDetails` caso o payload seja inválido.
+  - [x] Utilizar LINQ extensivamente nas consultas ao banco para posterior documentação.
+  - [x] Implementar middleware global de tratamento de erros (*Exception Handling Middleware*) para padronizar as respostas de falha em formato RFC 7807 (`ProblemDetails` e `ValidationProblemDetails`).
+  - [x] Configurar aplicação automática das EF Core Migrations (`Database.MigrateAsync()`) na inicialização da aplicação (`Program.cs`) para resiliência no Docker.
+  - [x] Ajustar resolução de DNS de rede Docker (`ConnectionStrings__DefaultConnection`) no `docker-compose.yml` para comunicação container-to-container (`Host=postgres`).
+  - [x] Criar e atualizar o arquivo de testes de requisições HTTP (`Estoque.API.http`) com exemplos práticos de requisições e validação.
+
+
 
 ### Issue 6: Tratamento de Concorrência e Mensageria (Estoque)
 - **Descrição:** Preparar o serviço para deduzir saldos de forma segura e assíncrona.
 - **Stack:** MassTransit (RabbitMQ), StackExchange.Redis.
 - **Tarefas:**
-  - Configurar o MassTransit para consumir a fila de `NotaFiscalImpressaEvent`.
+  - Configurar o MassTransit para consumir a fila de `NotaFiscalEmitidaEvent`.
   - Ao receber o evento, implementar lógica para atualizar o saldo dos produtos.
   - Implementar Distributed Lock com Redis (padrão Redlock) para garantir que, se dois eventos tentarem alterar o mesmo produto com saldo 1 simultaneamente, um deles aguarde ou falhe de forma controlada.
+
+### Issue 6.1: Observabilidade, Health Checks e Correlation ID (Estoque)
+- **Descrição:** Implementar o monitoramento de saúde do container de banco de dados PostgreSQL e a captura de Correlation ID para rastreabilidade no microsserviço de Estoque.
+- **Stack:** C# .NET 10, Microsoft.Extensions.Diagnostics.HealthChecks, Serilog.
+- **Tarefas:**
+  - Configurar Health Check nativo (`Microsoft.Extensions.Diagnostics.HealthChecks`) testando a conexão com o PostgreSQL no endpoint `/health`.
+  - Configurar o Serilog / MassTransit para capturar, registrar e incluir o `X-Correlation-ID` em todas as requisições HTTP e no processamento de mensagens do RabbitMQ.
 
 ---
 
@@ -98,6 +114,7 @@
   - Configurar o framework web Gin ou Fiber para roteamento REST.
   - Configurar o pacote de logs estruturados nativo `log/slog`.
   - Implementar o tratamento explícito de erros nativo do Go (`if err != nil`) nos handlers, padronizando o retorno das exceções em JSON.
+  - Configurar tags de struct do GORM para mapeamento explícito de tipos de dados compatíveis com o SQL Server (ex: mapear IDs de produtos e sequenciais para tipos de dados inteiros e decimais performáticos).
 
 ### Issue 8: Domínio, Persistência e Swagger (Faturamento - Go)
 - **Descrição:** Implementar a entidade de Nota Fiscal e conectar ao SQL Server.
@@ -115,6 +132,14 @@
   - Criar o endpoint de Impressão, adicionando a validação para verificar se o status está "Aberta" antes de alterar para "Fechada" no banco.
   - Instalar e utilizar o pacote `amqp091-go` para publicar o evento `NotaFiscalEmitida` no RabbitMQ, delegando a responsabilidade de atualizar o saldo para o Serviço de Estoque (que roda em C#) de forma assíncrona, simulando o cenário de recuperação de falhas.
 
+### Issue 9.1: Observabilidade, Correlation ID e Transação Compensatória (Faturamento - Go)
+- **Descrição:** Implementar monitoramento de saúde, rastreabilidade ponta a ponta e resiliência via Saga Pattern (Transação Compensatória) em Go.
+- **Stack:** Go (Golang), `log/slog`, RabbitMQ (`amqp091-go`), SQL Server.
+- **Tarefas:**
+  - Criar rota `/health` em Go realizando `Ping()` no SQL Server e no RabbitMQ para monitoramento pelo Prometheus.
+  - Extrair o `X-Correlation-ID` do cabeçalho da requisição HTTP, incluir nos logs de `slog` e injetar nos metadados do evento publicado no RabbitMQ.
+  - Criar um consumer em Go para a fila de falhas de estoque (`AbatimentoEstoqueFalhouEvent`) para executar a transação compensatória (alterar status da nota fiscal no SQL Server de "Fechada" para "Cancelada/Erro").
+
 ---
 
 ## Épico 4: API Gateway e Comunicação em Tempo Real
@@ -131,7 +156,15 @@
 - **Stack:** SignalR.
 - **Tarefas:**
   - Configurar um Hub do SignalR no API Gateway.
+  - Configurar a propriedade de Session Affinity e habilitar o suporte a WebSockets nas diretivas do YARP para garantir o fluxo contínuo de mensagens do SignalR downstream.
   - Se o Serviço de Estoque falhar ao processar a mensagem do RabbitMQ (ex: saldo insuficiente), ele publica um evento de erro. O Gateway consome e avisa o Frontend via WebSocket em tempo real.
+
+### Issue 11.1: Geração e Propagação de Correlation ID (API Gateway)
+- **Descrição:** Garantir que todas as requisições de entrada recebam um Correlation ID para rastreamento distribuído.
+- **Stack:** YARP (.NET 10).
+- **Tarefas:**
+  - Configurar middleware no YARP Gateway para gerar um GUID único (`X-Correlation-ID`) caso não esteja presente na requisição e propagá-lo nos cabeçalhos HTTP enviados para os microsserviços downstream.
+
 
 ---
 
@@ -144,6 +177,7 @@
   - Criar projeto via Angular CLI.
   - Configurar biblioteca visual (ex: Angular Material ou PrimeNG) para os componentes visuais.
   - Criar os services para comunicação HTTP com o API Gateway utilizando o ciclo de vida adequado (`ngOnInit`, `ngOnDestroy`).
+  - Implementar um `HttpInterceptor` global no Angular para interceptar respostas de erro (400 Bad Request, 500 Internal Server Error) vindas do YARP Gateway e exibir alertas amigáveis para o usuário na interface (utilizando os componentes da biblioteca visual escolhida).
 
 ### Issue 13: Telas de Cadastro (Produto e Nota Fiscal)
 - **Descrição:** Desenvolver as interfaces de usuário solicitadas.
