@@ -15,4 +15,4 @@ scrape_configs:
   - job_name: 'faturamento-api'
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['faturamento-api:8080']
+      - targets: ['faturamento-api:8082']

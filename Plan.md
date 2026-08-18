@@ -113,40 +113,56 @@
 
 ## Épico 3: Microsserviço de Faturamento / Nota Fiscal (Go / Golang)
 
-### Issue 7: Setup e Estrutura Base (Faturamento - Go)
+### Issue 7: Setup e Estrutura Base (Faturamento - Go) - [✅ Concluído]
+- **Status:** ✅ Concluído
 - **Descrição:** Inicializar a API REST de Faturamento utilizando Go.
-- **Stack:** Go (Golang), Gin/Fiber.
+- **Stack:** Go (Golang), Gin, GORM, testify.
 - **Tarefas:**
-  - Inicializar o projeto executando `go mod init faturamento-api` para controle de dependências, garantindo o requisito de detalhamento técnico.
-  - Estruturar o projeto seguindo o padrão de pastas da comunidade Go (`/cmd`, `/internal/domain`, `/internal/handlers`).
-  - Configurar o framework web Gin ou Fiber para roteamento REST.
-  - Configurar o pacote de logs estruturados nativo `log/slog`.
-  - Implementar o tratamento explícito de erros nativo do Go (`if err != nil`) nos handlers, padronizando o retorno das exceções em JSON.
-  - Configurar tags de struct do GORM para mapeamento explícito de tipos de dados compatíveis com o SQL Server (ex: mapear IDs de produtos e sequenciais para tipos de dados inteiros e decimais performáticos).
+  - [x] Inicializar o projeto executando `go mod init faturamento-api` para controle de dependências, garantindo o requisito de detalhamento técnico.
+  - [x] Estruturar o projeto seguindo o padrão de pastas da comunidade Go (`/cmd`, `/internal/domain`, `/internal/handlers`).
+  - [x] Configurar o framework web Gin para roteamento REST e middleware global de tratamento de erros.
+  - [x] Configurar o pacote de logs estruturados nativo `log/slog` (formato JSON).
+  - [x] Implementar o tratamento explícito de erros nativo do Go (`if err != nil`) nos handlers, padronizando o retorno das exceções em JSON.
+  - [x] Configurar tags de struct do GORM para mapeamento explícito de tipos de dados compatíveis com o SQL Server (ex: IDs e inteiros `type:bigint`, decimais `type:decimal(18,2)`).
+  - [x] Criar testes unitários para a struct de domínio (`domain/nota_fiscal_test.go`) e para os handlers HTTP (`handlers/health_test.go`) usando o pacote `testing` e a biblioteca `testify/assert`.
+
 
 ### Issue 8: Domínio, Persistência e Swagger (Faturamento - Go)
 - **Descrição:** Implementar a entidade de Nota Fiscal e conectar ao SQL Server.
 - **Stack:** Go, GORM, SQL Server, Swaggo.
 - **Tarefas:**
-  - Criar as structs referentes à `NotaFiscal` (Numeração, Status Aberta/Fechada) e `NotaFiscalItem`.
-  - Configurar a conexão com o SQL Server utilizando o ORM GORM (`gorm.io/driver/sqlserver`).
-  - Integrar a biblioteca Swaggo (`swaggo/swag`) para gerar a documentação e visualização da API via Swagger.
+  - [x] Criar as structs referentes à `NotaFiscal` (Numeração, Status Aberta/Fechada) e `NotaFiscalItem`.
+  - [x] Configurar a conexão com o SQL Server utilizando o ORM GORM (`gorm.io/driver/sqlserver`).
+  - [x] Integrar a biblioteca Swaggo (`swaggo/swag`) para gerar a documentação e visualização da API via Swagger.
 
-### Issue 9: Impressão e Mensageria (Faturamento - Go)
-- **Descrição:** Construir a lógica de finalização da nota e envio de eventos para o RabbitMQ.
-- **Stack:** Go, RabbitMQ (`amqp091-go`).
+### Issue 9: Impressão e Mensageria (Faturamento - Go) - [✅ Concluído]
+- **Status:** ✅ Concluído (Máquina de Estados Assíncrona: Aberta ➔ EmProcessamento ➔ Fechada / Cancelada)
+- **Descrição:** Construir a lógica de transição de estados da Nota Fiscal, envio de eventos para o RabbitMQ, pré-validação no Redis e confirmação/cancelamento assíncrono.
+- **Stack:** Go, RabbitMQ (`amqp091-go`), Redis (`go-redis/v9`), C# (.NET 10).
 - **Tarefas:**
-  - Criar o endpoint para a criação da Nota Fiscal, definindo o Status inicial como "Aberta".
-  - Criar o endpoint de Impressão, adicionando a validação para verificar se o status está "Aberta" antes de alterar para "Fechada" no banco.
-  - Instalar e utilizar o pacote `amqp091-go` para publicar o evento `NotaFiscalEmitida` no RabbitMQ, delegando a responsabilidade de atualizar o saldo para o Serviço de Estoque (que roda em C#) de forma assíncrona, simulando o cenário de recuperação de falhas.
+  - [x] Criar os endpoints `POST /api/v1/notas-fiscais` e `GET /api/v1/notas-fiscais` para criação e listagem de Notas Fiscais com status inicial "Aberta".
+  - [x] Sincronizar produtos no Redis (`produto:codigo:{codigo}`) com TTL sliding de 24h e pré-validar no Go rejeitando itens não cadastrados com HTTP `400 Bad Request`.
+  - [x] Atualizar endpoint `POST /api/v1/notas-fiscais/:id/imprimir` para alterar status de "Aberta" ➔ "EmProcessamento" ao publicar no RabbitMQ.
+  - [x] Implementar trava distribuída Redlock e verificação de Idempotência (7 dias) no consumidor C# (`NotaFiscalEmitidaConsumer`).
+  - [x] Implementar confirmação no C# (`NotaFiscalAbatidaEvent`) e consumidor em Go para alterar de "EmProcessamento" ➔ "Fechada" em caso de sucesso.
+  - [x] Implementar consumidor de falha em Go (`AbatimentoEstoqueFalhouEvent`) para alterar de "EmProcessamento" ➔ "Cancelada" em caso de erro no estoque (Transação Compensatória / Saga).
 
-### Issue 9.1: Observabilidade, Correlation ID e Transação Compensatória (Faturamento - Go)
-- **Descrição:** Implementar monitoramento de saúde, rastreabilidade ponta a ponta e resiliência via Saga Pattern (Transação Compensatória) em Go.
-- **Stack:** Go (Golang), `log/slog`, RabbitMQ (`amqp091-go`), SQL Server.
+### Issue 9.1: Observabilidade, Correlation ID, Loki e Transação Compensatória (Faturamento - Go & Estoque - C#) - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Implementar monitoramento de saúde, rastreabilidade ponta a ponta via Correlation ID/UUID, agregador de logs Grafana Loki + Promtail, healthchecks nativos no Docker Compose e resiliência via Saga Pattern (Transação Compensatória).
+- **Stack:** Go (Golang), C# (.NET 10), `log/slog`, Serilog, RabbitMQ (`amqp091-go`), Redis, SQL Server, PostgreSQL, Prometheus, Grafana Loki, Promtail.
 - **Tarefas:**
-  - Criar rota `/health` em Go realizando `Ping()` no SQL Server e no RabbitMQ para monitoramento pelo Prometheus.
-  - Extrair o `X-Correlation-ID` do cabeçalho da requisição HTTP, incluir nos logs de `slog` e injetar nos metadados do evento publicado no RabbitMQ.
-  - Criar um consumer em Go para a fila de falhas de estoque (`AbatimentoEstoqueFalhouEvent`) para executar a transação compensatória (alterar status da nota fiscal no SQL Server de "Fechada" para "Cancelada/Erro").
+  - [x] Criar rotas `/health` em Go e C# realizando `Ping()` no SQL Server, PostgreSQL, Redis e RabbitMQ para monitoramento do sistema.
+  - [x] Configurar `healthcheck` nativo no `docker-compose.yml` para os containers `faturamento-api` e `estoque-api` reportarem status `(healthy)` ao Docker.
+  - [x] Implementar middleware de Correlation ID (`X-Correlation-ID`) para extração/geração automática, injeção nos logs de `slog` (Go) e Serilog (C#) e propagação nos eventos do RabbitMQ.
+  - [x] Exportar métricas Prometheus (`/metrics`) via `promhttp` no Go e `prometheus-net` no C# para coleta de dados de execução HTTP e runtime.
+  - [x] Corrigir raspagem do Prometheus apontando para as portas internas corretas dos containers (`estoque-api:8080` e `faturamento-api:8082`).
+  - [x] Integrar Grafana Loki (`loki:3100`) e Promtail (`promtail`) no Docker Compose para agregação centralizada de logs dos containers Docker.
+  - [x] Configurar provisionamento automático de fontes de dados no Grafana (`grafana/provisioning/datasources/` para Prometheus e Loki).
+  - [x] Registrar o `uuid` da Nota Fiscal em todas as etapas da máquina de estados para rastreamento completo de ciclo de vida (criação ➔ emissão ➔ débito ➔ fechamento) no Grafana Loki.
+  - [x] Padronizar Message Templates estruturados de logging no C# (`NotaFiscalEmitidaConsumer.cs`) para correlação de eventos com `{CorrelationId}` e `{NotaFiscalId}` no Loki.
+  - [x] Configurar política de expiração (TTL de 24 horas) para o cache de produtos no Redis (`RedisProdutoCacheService.cs`).
+  - [x] Criar consumidor em Go para a fila de falhas de estoque (`AbatimentoEstoqueFalhouEvent`) para executar a transação compensatória (alterar status da nota fiscal no SQL Server de "EmProcessamento" para "Cancelada").
 
 ---
 

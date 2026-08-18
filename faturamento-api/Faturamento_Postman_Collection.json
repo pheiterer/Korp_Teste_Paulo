@@ -1,0 +1,240 @@
+{
+	"info": {
+		"_postman_id": "f8a9e102-3c41-4b89-a21b-90f7a6543210",
+		"name": "API de Faturamento (Go - Issues 7, 8 e 9)",
+		"description": "Collection do Postman para testar os endpoints da API RESTful de Faturamento em Go, incluindo criacao de notas fiscais, impressao/finalizacao e disparo de eventos para o RabbitMQ.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8082",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Observabilidade & Saude",
+			"item": [
+				{
+					"name": "1.1 Health Check (Ping)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Verifica a saude basica do servidor HTTP de Faturamento em Go."
+					},
+					"response": []
+				},
+				{
+					"name": "1.2 API Ping (v1)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/ping",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"ping"
+							]
+						},
+						"description": "Endpoint de teste de conectividade da versao v1 da API."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Gestao de Notas Fiscais (Issue 9)",
+			"item": [
+				{
+					"name": "2.1 Criar Nota Fiscal (Status Aberta)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"itens\": [\n    {\n      \"produto_id\": 1,\n      \"codigo_produto\": \"PRD-001\",\n      \"quantidade\": 2,\n      \"preco_unitario\": 50.00\n    },\n    {\n      \"produto_id\": 2,\n      \"codigo_produto\": \"PRD-002\",\n      \"quantidade\": 1,\n      \"preco_unitario\": 30.00\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notas-fiscais",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notas-fiscais"
+							]
+						},
+						"description": "Cria uma nova Nota Fiscal no SQL Server com status inicial 'Aberta' e calcula o valor total (130.00)."
+					},
+					"response": []
+				},
+				{
+					"name": "2.2 Listar Todas as Notas Fiscais",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notas-fiscais",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notas-fiscais"
+							]
+						},
+						"description": "Retorna a lista de todas as Notas Fiscais salvas com seus respectivos itens."
+					},
+					"response": []
+				},
+				{
+					"name": "2.3 Obter Nota Fiscal por ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notas-fiscais/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notas-fiscais",
+								"1"
+							]
+						},
+						"description": "Retorna os detalhes da Nota Fiscal de ID 1."
+					},
+					"response": []
+				},
+				{
+					"name": "2.4 Imprimir / Finalizar Nota Fiscal (Publica Evento no RabbitMQ)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Correlation-ID",
+								"value": "postman-corr-id-12345",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notas-fiscais/1/imprimir",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notas-fiscais",
+								"1",
+								"imprimir"
+							]
+						},
+						"description": "Verifica se a Nota Fiscal 1 esta 'Aberta', altera o status para 'Fechada' no SQL Server e dispara o evento NotaFiscalEmitidaEvent para o RabbitMQ com X-Correlation-ID."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Validacoes e Trata de Erros",
+			"item": [
+				{
+					"name": "3.1 Erro - Re-impressao de Nota Ja Fechada (Status Invalido 400)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notas-fiscais/1/imprimir",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notas-fiscais",
+								"1",
+								"imprimir"
+							]
+						},
+						"description": "Tenta imprimir novamente uma Nota Fiscal que ja esta 'Fechada'. Deve retornar HTTP 400 Bad Request com a mensagem: apenas notas fiscais com status 'Aberta' podem ser impressas/finalizadas."
+					},
+					"response": []
+				},
+				{
+					"name": "3.2 Erro - Criar Nota Fiscal Sem Itens (400 Bad Request)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"itens\": []\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notas-fiscais",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notas-fiscais"
+							]
+						},
+						"description": "Tenta criar uma Nota Fiscal sem itens. Deve retornar erro de validacao 400 Bad Request."
+					},
+					"response": []
+				},
+				{
+					"name": "3.3 Erro - Nota Fiscal Nao Encontrada (404 Not Found)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notas-fiscais/999",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notas-fiscais",
+								"999"
+							]
+						},
+						"description": "Busca por um ID inexistente no banco de dados. Deve retornar HTTP 404 Not Found."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
