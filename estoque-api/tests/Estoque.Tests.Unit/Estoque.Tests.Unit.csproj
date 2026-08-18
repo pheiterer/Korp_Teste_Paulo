@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -21,7 +21,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Estoque.Application\Estoque.Application.csproj" />
+    <ProjectReference Include="..\..\src\Estoque.Infrastructure\Estoque.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Estoque.Domain\Estoque.Domain.csproj" />
   </ItemGroup>
 
