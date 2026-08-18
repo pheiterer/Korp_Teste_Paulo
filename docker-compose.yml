@@ -24,6 +24,29 @@ services:
     networks:
       - korp-network
 
+  faturamento-api:
+    build:
+      context: ./faturamento-api
+      dockerfile: Dockerfile
+    container_name: faturamento-api
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      - GIN_MODE=release
+      - PORT=8082
+      - ConnectionStrings__SqlServer=sqlserver://sa:YourPassword123!@sqlserver:1433?database=faturamentodb&encrypt=disable
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Username=guest
+      - RabbitMQ__Password=guest
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - korp-network
+
   postgres:
     image: postgres:16-alpine
     container_name: estoque-db
