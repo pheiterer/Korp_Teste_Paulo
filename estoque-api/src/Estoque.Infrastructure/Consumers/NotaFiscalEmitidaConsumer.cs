@@ -34,8 +34,11 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
     {
         var message = context.Message;
         var idempotencyKey = message.NotaFiscalId.ToString();
+        var correlationId = context.CorrelationId?.ToString() ?? message.NotaFiscalId.ToString();
 
-        _logger.LogInformation("Recebido evento NotaFiscalEmitidaEvent para Nota Fiscal {NotaFiscalId}.", message.NotaFiscalId);
+        using (_logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = correlationId }))
+        {
+            _logger.LogInformation("Recebido evento NotaFiscalEmitidaEvent para Nota Fiscal {NotaFiscalId}.", message.NotaFiscalId);
 
         // 1. Verificação de Idempotência
         if (await _idempotencyService.RequestExistsAsync(idempotencyKey, context.CancellationToken))
@@ -104,6 +107,7 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
             {
                 lockObj.Dispose();
             }
+        }
         }
     }
 }

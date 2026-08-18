@@ -99,12 +99,15 @@
   - [x] Configurar política de resiliência e retry com *Exponential Backoff* no MassTransit.
   - [x] Em caso de falha definitiva no débito de estoque (ex: saldo insuficiente), redirecionar a mensagem para a fila de erro (`_error`) e publicar o evento `AbatimentoEstoqueFalhouEvent` para acionar a saga compensatória.
 
-### Issue 6.1: Observabilidade, Health Checks e Correlation ID (Estoque)
-- **Descrição:** Implementar o monitoramento de saúde do container de banco de dados PostgreSQL e a captura de Correlation ID para rastreabilidade no microsserviço de Estoque.
-- **Stack:** C# .NET 10, Microsoft.Extensions.Diagnostics.HealthChecks, Serilog.
+### Issue 6.1: Observabilidade, Health Checks e Correlation ID (Estoque) - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Implementar o monitoramento de saúde abrangente (PostgreSQL, Redis e RabbitMQ), métricas Prometheus e rastreabilidade distribuída via Correlation ID no microsserviço de Estoque.
+- **Stack:** C# .NET 10, Microsoft.Extensions.Diagnostics.HealthChecks, HealthChecks.NpgSql, HealthChecks.Redis, HealthChecks.RabbitMQ, Serilog, prometheus-net.
 - **Tarefas:**
-  - Configurar Health Check nativo (`Microsoft.Extensions.Diagnostics.HealthChecks`) testando a conexão com o PostgreSQL no endpoint `/health`.
-  - Configurar o Serilog / MassTransit para capturar, registrar e incluir o `X-Correlation-ID` em todas as requisições HTTP e no processamento de mensagens do RabbitMQ.
+  - [x] Configurar Health Checks nativos para PostgreSQL, Redis e RabbitMQ expostos no endpoint `/health` com resposta JSON detalhada (`UIResponseWriter`).
+  - [x] Criar o `CorrelationIdMiddleware` para interceptar requisições HTTP, gerenciar o cabeçalho `X-Correlation-ID` e enriquecer o `LogContext` do Serilog.
+  - [x] Configurar o MassTransit para propagar e registrar o `CorrelationId` durante a publicação e consumo de mensagens do RabbitMQ.
+  - [x] Adicionar o middleware de métricas do Prometheus (`prometheus-net.AspNetCore`) exposto em `/metrics`.
 
 ---
 
