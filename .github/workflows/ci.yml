@@ -97,3 +97,32 @@ jobs:
           else
             echo "Diretório do Serviço de Faturamento Go ainda não inicializado (Issue 7). Step ignorado."
           fi
+
+  build-gateway:
+    name: Build & Test API Gateway (C# .NET YARP & SignalR)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+            9.0.x
+          include-prerelease: true
+
+      - name: Build & Test Gateway Service
+        run: |
+          if [ -d "gateway-api" ]; then
+            cd gateway-api
+            dotnet restore src/Gateway.Api/Gateway.Api.csproj
+            dotnet build src/Gateway.Api/Gateway.Api.csproj
+            if [ -d "tests/Gateway.Tests.Unit" ]; then
+              dotnet test tests/Gateway.Tests.Unit/Gateway.Tests.Unit.csproj --verbosity normal
+            fi
+          else
+            echo "Diretório do API Gateway ainda não inicializado (Issue 10). Step ignorado."
+          fi
+
