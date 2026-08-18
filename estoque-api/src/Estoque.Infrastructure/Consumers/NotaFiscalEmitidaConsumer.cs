@@ -14,6 +14,7 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
     private readonly EstoqueDbContext _context;
     private readonly IIdempotencyService _idempotencyService;
     private readonly IDistributedLockService _distributedLockService;
+    private readonly IProdutoCacheService _cacheService;
     private readonly ILogger<NotaFiscalEmitidaConsumer> _logger;
 
     public NotaFiscalEmitidaConsumer(
@@ -21,12 +22,14 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
         EstoqueDbContext context,
         IIdempotencyService idempotencyService,
         IDistributedLockService distributedLockService,
+        IProdutoCacheService cacheService,
         ILogger<NotaFiscalEmitidaConsumer> logger)
     {
         _produtoRepository = produtoRepository ?? throw new ArgumentNullException(nameof(produtoRepository));
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _idempotencyService = idempotencyService ?? throw new ArgumentNullException(nameof(idempotencyService));
         _distributedLockService = distributedLockService ?? throw new ArgumentNullException(nameof(distributedLockService));
+        _cacheService = cacheService;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -85,8 +88,27 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
             await _produtoRepository.SaveChangesAsync(context.CancellationToken);
             await transaction.CommitAsync(context.CancellationToken);
 
+            // Atualiza o saldo no Redis Cache
+            if (_cacheService != null)
+            {
+                foreach (var item in message.Itens)
+                {
+                    var p = await _produtoRepository.GetByCodigoAsync(item.CodigoProduto, context.CancellationToken);
+                    if (p != null)
+                    {
+                        await _cacheService.SetProdutoCacheAsync(p.Codigo, p.Descricao, p.Saldo, context.CancellationToken);
+                    }
+                }
+            }
+
             // 4. Marcação da chave de Idempotência no Redis (válido por 7 dias)
             await _idempotencyService.SaveRequestAsync(idempotencyKey, TimeSpan.FromDays(7), context.CancellationToken);
+
+            // 5. Publicação do evento de confirmação de estoque abatido com sucesso
+            await context.Publish(new NotaFiscalAbatidaEvent(
+                message.NotaFiscalId,
+                DateTime.UtcNow
+            ), context.CancellationToken);
 
             _logger.LogInformation("Estoque debitado com sucesso para a Nota Fiscal {NotaFiscalId}.", message.NotaFiscalId);
         }

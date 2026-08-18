@@ -135,13 +135,16 @@
   - [x] Configurar a conexão com o SQL Server utilizando o ORM GORM (`gorm.io/driver/sqlserver`).
   - [x] Integrar a biblioteca Swaggo (`swaggo/swag`) para gerar a documentação e visualização da API via Swagger.
 
-### Issue 9: Impressão e Mensageria (Faturamento - Go)
-- **Descrição:** Construir a lógica de finalização da nota e envio de eventos para o RabbitMQ.
-- **Stack:** Go, RabbitMQ (`amqp091-go`).
+### Issue 9: Impressão e Mensageria (Faturamento - Go) - [✅ Concluído]
+- **Status:** ✅ Concluído (Máquina de Estados Assíncrona: Aberta ➔ EmProcessamento ➔ Fechada / Cancelada)
+- **Descrição:** Construir a lógica de transição de estados da Nota Fiscal, envio de eventos para o RabbitMQ, pré-validação no Redis e confirmação/cancelamento assíncrono.
+- **Stack:** Go, RabbitMQ (`amqp091-go`), Redis (`go-redis/v9`).
 - **Tarefas:**
-  - Criar o endpoint para a criação da Nota Fiscal, definindo o Status inicial como "Aberta".
-  - Criar o endpoint de Impressão, adicionando a validação para verificar se o status está "Aberta" antes de alterar para "Fechada" no banco.
-  - Instalar e utilizar o pacote `amqp091-go` para publicar o evento `NotaFiscalEmitida` no RabbitMQ, delegando a responsabilidade de atualizar o saldo para o Serviço de Estoque (que roda em C#) de forma assíncrona, simulando o cenário de recuperação de falhas.
+  - [x] Criar os endpoints `POST /api/v1/notas-fiscais` e `GET /api/v1/notas-fiscais` para criação e listagem de Notas Fiscais com status inicial "Aberta".
+  - [x] Sincronizar produtos no Redis (`produto:codigo:{codigo}`) e pré-validar no Go rejeitando itens não cadastrados com HTTP `400 Bad Request`.
+  - [x] Atualizar endpoint `POST /api/v1/notas-fiscais/:id/imprimir` para alterar status de "Aberta" ➔ "EmProcessamento" ao publicar no RabbitMQ.
+  - [x] Implementar confirmação no C# (`NotaFiscalAbatidaEvent`) e consumidor em Go para alterar de "EmProcessamento" ➔ "Fechada" em caso de sucesso.
+  - [x] Implementar consumidor de falha em Go (`AbatimentoEstoqueFalhouEvent`) para alterar de "EmProcessamento" ➔ "Cancelada" em caso de erro no estoque (Transação Compensatória / Saga).
 
 ### Issue 9.1: Observabilidade, Correlation ID e Transação Compensatória (Faturamento - Go)
 - **Descrição:** Implementar monitoramento de saúde, rastreabilidade ponta a ponta e resiliência via Saga Pattern (Transação Compensatória) em Go.

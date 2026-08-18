@@ -1,0 +1,528 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+		"name": "Korp Teste Paulo - Master Postman Collection",
+		"description": "Collection completa do Postman com todos os microsserviços da solução (Estoque .NET 10 e Faturamento Go) estruturados com pastas e subpastas organizadas.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "estoqueUrl",
+			"value": "http://localhost:8081",
+			"type": "string"
+		},
+		{
+			"key": "faturamentoUrl",
+			"value": "http://localhost:8082",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Microsserviço de Estoque (C# .NET 10)",
+			"item": [
+				{
+					"name": "1.1 Observabilidade & Saúde",
+					"item": [
+						{
+							"name": "1.1.1 Health Check Completo (PostgreSQL, Redis e RabbitMQ)",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{estoqueUrl}}/health",
+									"host": [
+										"{{estoqueUrl}}"
+									],
+									"path": [
+										"health"
+									]
+								},
+								"description": "Verifica a saúde do PostgreSQL, Redis, RabbitMQ e MassTransit. Deve retornar HTTP 200 OK com status 'Healthy' e cabeçalho X-Correlation-ID."
+							},
+							"response": []
+						},
+						{
+							"name": "1.1.2 Métricas Prometheus",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{estoqueUrl}}/metrics",
+									"host": [
+										"{{estoqueUrl}}"
+									],
+									"path": [
+										"metrics"
+									]
+								},
+								"description": "Retorna métricas em formato Prometheus para consumo pelo Grafana/Prometheus."
+							},
+							"response": []
+						},
+						{
+							"name": "1.1.3 Teste de Correlation ID Customizado",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-Correlation-ID",
+										"value": "postman-test-correlation-99999",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{estoqueUrl}}/health",
+									"host": [
+										"{{estoqueUrl}}"
+									],
+									"path": [
+										"health"
+									]
+								},
+								"description": "Envia um X-Correlation-ID customizado e valida que a API preserva e retorna o mesmo ID nos cabeçalhos da resposta."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "1.2 Gestão de Produtos",
+					"item": [
+						{
+							"name": "1.2.1 Criar Produto PRD-001 (Parafuso)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"codigo\": \"PRD-001\",\n  \"descricao\": \"Parafuso Sextavado Zincado 3/8 x 2\",\n  \"saldoInicial\": 150\n}"
+								},
+								"url": {
+									"raw": "{{estoqueUrl}}/api/produtos",
+									"host": [
+										"{{estoqueUrl}}"
+									],
+									"path": [
+										"api",
+										"produtos"
+									]
+								},
+								"description": "Cadastra um novo produto no Estoque. Deve retornar 201 Created com cabeçalho Location."
+							},
+							"response": []
+						},
+						{
+							"name": "1.2.2 Criar Produto PRD-002 (Porca)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"codigo\": \"PRD-002\",\n  \"descricao\": \"Porca Sextavada 3/8\",\n  \"saldoInicial\": 300\n}"
+								},
+								"url": {
+									"raw": "{{estoqueUrl}}/api/produtos",
+									"host": [
+										"{{estoqueUrl}}"
+									],
+									"path": [
+										"api",
+										"produtos"
+									]
+								},
+								"description": "Cadastra outro produto no Estoque."
+							},
+							"response": []
+						},
+						{
+							"name": "1.2.3 Listar Todos os Produtos (Com Busca)",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{estoqueUrl}}/api/produtos?busca=Parafuso",
+									"host": [
+										"{{estoqueUrl}}"
+									],
+									"path": [
+										"api",
+										"produtos"
+									],
+									"query": [
+										{
+											"key": "busca",
+											"value": "Parafuso"
+										}
+									]
+								},
+								"description": "Retorna a lista de produtos filtrando pelo termo de busca."
+							},
+							"response": []
+						},
+						{
+							"name": "1.2.4 Obter Produto por Código",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{estoqueUrl}}/api/produtos/codigo/PRD-001",
+									"host": [
+										"{{estoqueUrl}}"
+									],
+									"path": [
+										"api",
+										"produtos",
+										"codigo",
+										"PRD-001"
+									]
+								},
+								"description": "Obtém os detalhes de um produto pelo seu código de produto."
+							},
+							"response": []
+						},
+						{
+							"name": "1.2.5 Obter Produto por ID (GUID)",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{estoqueUrl}}/api/produtos/00000000-0000-0000-0000-000000000000",
+									"host": [
+										"{{estoqueUrl}}"
+									],
+									"path": [
+										"api",
+										"produtos",
+										"00000000-0000-0000-0000-000000000000"
+									]
+								},
+								"description": "Obtém os detalhes de um produto pelo seu identificador GUID."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "1.3 Validações e Erros (RFC 7807)",
+					"item": [
+						{
+							"name": "1.3.1 Erro - Saldo Negativo (FluentValidation)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"codigo\": \"PRD-ERR\",\n  \"descricao\": \"Produto Inválido\",\n  \"saldoInicial\": -10\n}"
+								},
+								"url": {
+									"raw": "{{estoqueUrl}}/api/produtos",
+									"host": [
+										"{{estoqueUrl}}"
+									],
+									"path": [
+										"api",
+										"produtos"
+									]
+								},
+								"description": "Valida que erros de validação retornam no padrão RFC 7807 (400 Bad Request)."
+							},
+							"response": []
+						},
+						{
+							"name": "1.3.2 Erro - Código Duplicado",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"codigo\": \"PRD-001\",\n  \"descricao\": \"Parafuso Duplicado\",\n  \"saldoInicial\": 50\n}"
+								},
+								"url": {
+									"raw": "{{estoqueUrl}}/api/produtos",
+									"host": [
+										"{{estoqueUrl}}"
+									],
+									"path": [
+										"api",
+										"produtos"
+									]
+								},
+								"description": "Tenta cadastrar código duplicado. Retorna HTTP 400 Bad Request."
+							},
+							"response": []
+						},
+						{
+							"name": "1.3.3 Erro - Produto Não Encontrado (404)",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{estoqueUrl}}/api/produtos/00000000-0000-0000-0000-000000000000",
+									"host": [
+										"{{estoqueUrl}}"
+									],
+									"path": [
+										"api",
+										"produtos",
+										"00000000-0000-0000-0000-000000000000"
+									]
+								},
+								"description": "Busca GUID inexistente. Retorna HTTP 404 Not Found."
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "2. Microsserviço de Faturamento (Go / Golang)",
+			"item": [
+				{
+					"name": "2.1 Observabilidade & Saúde",
+					"item": [
+						{
+							"name": "2.1.1 Health Check (Go)",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{faturamentoUrl}}/health",
+									"host": [
+										"{{faturamentoUrl}}"
+									],
+									"path": [
+										"health"
+									]
+								},
+								"description": "Verifica a saúde do servidor HTTP de Faturamento em Go."
+							},
+							"response": []
+						},
+						{
+							"name": "2.1.2 API Ping (v1)",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{faturamentoUrl}}/api/v1/ping",
+									"host": [
+										"{{faturamentoUrl}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"ping"
+									]
+								},
+								"description": "Endpoint de teste de conectividade v1 da API de Faturamento."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "2.2 Gestão de Notas Fiscais (Issue 9)",
+					"item": [
+						{
+							"name": "2.2.1 Criar Nota Fiscal (Status Aberta)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"itens\": [\n    {\n      \"produto_id\": 1,\n      \"codigo_produto\": \"PRD-001\",\n      \"quantidade\": 2,\n      \"preco_unitario\": 50.00\n    },\n    {\n      \"produto_id\": 2,\n      \"codigo_produto\": \"PRD-002\",\n      \"quantidade\": 1,\n      \"preco_unitario\": 30.00\n    }\n  ]\n}"
+								},
+								"url": {
+									"raw": "{{faturamentoUrl}}/api/v1/notas-fiscais",
+									"host": [
+										"{{faturamentoUrl}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"notas-fiscais"
+									]
+								},
+								"description": "Cria uma Nota Fiscal com os produtos PRD-001 e PRD-002 com status inicial 'Aberta'."
+							},
+							"response": []
+						},
+						{
+							"name": "2.2.2 Listar Todas as Notas Fiscais",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{faturamentoUrl}}/api/v1/notas-fiscais",
+									"host": [
+										"{{faturamentoUrl}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"notas-fiscais"
+									]
+								},
+								"description": "Retorna a lista de todas as Notas Fiscais salvas com seus respectivos itens."
+							},
+							"response": []
+						},
+						{
+							"name": "2.2.3 Obter Nota Fiscal por ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{faturamentoUrl}}/api/v1/notas-fiscais/1",
+									"host": [
+										"{{faturamentoUrl}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"notas-fiscais",
+										"1"
+									]
+								},
+								"description": "Retorna os detalhes da Nota Fiscal de ID 1."
+							},
+							"response": []
+						},
+						{
+							"name": "2.2.4 Imprimir / Finalizar Nota Fiscal (Dispara Evento RabbitMQ -> Estoque)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-Correlation-ID",
+										"value": "postman-flow-test-001",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{faturamentoUrl}}/api/v1/notas-fiscais/1/imprimir",
+									"host": [
+										"{{faturamentoUrl}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"notas-fiscais",
+										"1",
+										"imprimir"
+									]
+								},
+								"description": "Valida se status é 'Aberta', altera para 'Fechada' no SQL Server e publica NotaFiscalEmitidaEvent no RabbitMQ. O Estoque (C#) consome a mensagem e debita o saldo automaticamente."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "2.3 Validações e Tratamento de Erros",
+					"item": [
+						{
+							"name": "2.3.1 Erro - Re-impressão de Nota Já Fechada (Status Inválido 400)",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{faturamentoUrl}}/api/v1/notas-fiscais/1/imprimir",
+									"host": [
+										"{{faturamentoUrl}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"notas-fiscais",
+										"1",
+										"imprimir"
+									]
+								},
+								"description": "Tenta imprimir novamente uma Nota Fiscal que já está 'Fechada'. Deve retornar HTTP 400 Bad Request."
+							},
+							"response": []
+						},
+						{
+							"name": "2.3.2 Erro - Criar Nota Fiscal Sem Itens (400 Bad Request)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"itens\": []\n}"
+								},
+								"url": {
+									"raw": "{{faturamentoUrl}}/api/v1/notas-fiscais",
+									"host": [
+										"{{faturamentoUrl}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"notas-fiscais"
+									]
+								},
+								"description": "Tenta criar uma Nota Fiscal sem itens. Deve retornar erro de validação 400 Bad Request."
+							},
+							"response": []
+						},
+						{
+							"name": "2.3.3 Erro - Nota Fiscal Não Encontrada (404 Not Found)",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{faturamentoUrl}}/api/v1/notas-fiscais/999",
+									"host": [
+										"{{faturamentoUrl}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"notas-fiscais",
+										"999"
+									]
+								},
+								"description": "Busca por um ID inexistente. Deve retornar HTTP 404 Not Found."
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	]
+}

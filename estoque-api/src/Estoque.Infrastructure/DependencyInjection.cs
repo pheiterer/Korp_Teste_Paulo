@@ -42,6 +42,7 @@ public static class DependencyInjection
 
         services.AddSingleton<IIdempotencyService, RedisIdempotencyService>();
         services.AddSingleton<IDistributedLockService, RedisLockService>();
+        services.AddSingleton<IProdutoCacheService, RedisProdutoCacheService>();
 
         // 3. MassTransit & RabbitMQ (Mensageria Assíncrona)
         services.AddMassTransit(x =>

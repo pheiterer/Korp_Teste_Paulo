@@ -23,6 +23,164 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/notas-fiscais": {
+            "get": {
+                "description": "Retorna a lista de todas as notas fiscais com seus respectivos itens.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notas Fiscais"
+                ],
+                "summary": "Listar Notas Fiscais",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.APIResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Cria uma nova Nota Fiscal no banco de dados com status 'Aberta'.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notas Fiscais"
+                ],
+                "summary": "Criar Nota Fiscal",
+                "parameters": [
+                    {
+                        "description": "Payload de Criacao da Nota Fiscal",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.CreateNotaFiscalRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/notas-fiscais/{id}": {
+            "get": {
+                "description": "Retorna os detalhes de uma nota fiscal pelo seu ID ou UUID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notas Fiscais"
+                ],
+                "summary": "Buscar Nota Fiscal por ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID ou UUID da Nota Fiscal",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.APIResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/notas-fiscais/{id}/imprimir": {
+            "post": {
+                "description": "Altera o status da Nota Fiscal para 'Fechada' e dispara o evento assincrono NotaFiscalEmitidaEvent para o RabbitMQ.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notas Fiscais"
+                ],
+                "summary": "Imprimir Nota Fiscal",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID ou UUID da Nota Fiscal",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.APIResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Retorna o estado de saude do microsservico de faturamento",
@@ -66,6 +224,46 @@ const docTemplate = `{
                 },
                 "success": {
                     "type": "boolean"
+                }
+            }
+        },
+        "handlers.CreateNotaFiscalItemRequest": {
+            "type": "object",
+            "required": [
+                "preco_unitario",
+                "quantidade"
+            ],
+            "properties": {
+                "codigo_produto": {
+                    "type": "string"
+                },
+                "preco_unitario": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "produto_id": {
+                    "type": "integer"
+                },
+                "quantidade": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.CreateNotaFiscalRequest": {
+            "type": "object",
+            "required": [
+                "itens"
+            ],
+            "properties": {
+                "itens": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/handlers.CreateNotaFiscalItemRequest"
+                    }
+                },
+                "numero_sequencial": {
+                    "type": "integer"
                 }
             }
         },
