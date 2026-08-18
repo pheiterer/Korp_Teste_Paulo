@@ -131,9 +131,9 @@
 - **Descrição:** Implementar a entidade de Nota Fiscal e conectar ao SQL Server.
 - **Stack:** Go, GORM, SQL Server, Swaggo.
 - **Tarefas:**
-  - Criar as structs referentes à `NotaFiscal` (Numeração, Status Aberta/Fechada) e `NotaFiscalItem`.
-  - Configurar a conexão com o SQL Server utilizando o ORM GORM (`gorm.io/driver/sqlserver`).
-  - Integrar a biblioteca Swaggo (`swaggo/swag`) para gerar a documentação e visualização da API via Swagger.
+  - [x] Criar as structs referentes à `NotaFiscal` (Numeração, Status Aberta/Fechada) e `NotaFiscalItem`.
+  - [x] Configurar a conexão com o SQL Server utilizando o ORM GORM (`gorm.io/driver/sqlserver`).
+  - [x] Integrar a biblioteca Swaggo (`swaggo/swag`) para gerar a documentação e visualização da API via Swagger.
 
 ### Issue 9: Impressão e Mensageria (Faturamento - Go)
 - **Descrição:** Construir a lógica de finalização da nota e envio de eventos para o RabbitMQ.

@@ -1,0 +1,66 @@
+basePath: /
+definitions:
+  handlers.APIResponse:
+    properties:
+      data: {}
+      error:
+        $ref: '#/definitions/handlers.ErrorResponse'
+      success:
+        type: boolean
+    type: object
+  handlers.ErrorResponse:
+    properties:
+      code:
+        type: string
+      details:
+        items:
+          type: string
+        type: array
+      message:
+        type: string
+    type: object
+  handlers.HealthResponse:
+    properties:
+      service:
+        type: string
+      status:
+        type: string
+      timestamp:
+        type: string
+    type: object
+host: localhost:8082
+info:
+  contact:
+    name: Suporte Korp
+    url: https://github.com/pheiterer/Korp_Teste_Paulo
+  description: API RESTful para emissao, gerenciamento de Notas Fiscais e integracao
+    com SQL Server.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: API de Faturamento (Microsservico Go)
+  version: "1.0"
+paths:
+  /health:
+    get:
+      description: Retorna o estado de saude do microsservico de faturamento
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handlers.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/handlers.HealthResponse'
+              type: object
+      summary: Health Check da API
+      tags:
+      - Health
+schemes:
+- http
+- https
+swagger: "2.0"
