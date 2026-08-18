@@ -1,4 +1,8 @@
+using Estoque.Application;
+using Estoque.API.Middlewares;
 using Estoque.Infrastructure;
+using Estoque.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,8 +16,9 @@ builder.Host.UseSerilog((context, services, configuration) =>
         .Enrich.FromLogContext();
 });
 
-// Registrar serviços de Infraestrutura (DbContext, Repositórios)
+// Registrar serviços de Infraestrutura e Aplicação
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddApplication();
 
 // Controllers e Swagger
 builder.Services.AddControllers();
@@ -22,8 +27,17 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Middleware de Log de Requisições HTTP (Serilog)
+// Aplicar Migrations no Banco de Dados (PostgreSQL) na inicialização
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<EstoqueDbContext>();
+    await dbContext.Database.MigrateAsync();
+}
+
+// Middleware Global de Tratamento de Erros e Logs
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseSerilogRequestLogging();
+
 
 if (app.Environment.IsDevelopment())
 {
@@ -31,8 +45,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 
+
 app.Run();
+

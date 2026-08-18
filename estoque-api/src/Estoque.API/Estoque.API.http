@@ -1,6 +1,61 @@
-@Estoque.API_HostAddress = http://localhost:5249
+@Estoque.API_HostAddress = http://localhost:8081
 
-GET {{Estoque.API_HostAddress}}/weatherforecast/
+### Cadastrar Produto (Sucesso)
+POST {{Estoque.API_HostAddress}}/api/produtos
+Content-Type: application/json
+
+{
+  "codigo": "PROD001",
+  "descricao": "Parafuso Sextavado M8 x 30mm",
+  "saldoInicial": 100
+}
+
+###
+
+### Cadastrar Outro Produto (Sucesso)
+POST {{Estoque.API_HostAddress}}/api/produtos
+Content-Type: application/json
+
+{
+  "codigo": "PROD002",
+  "descricao": "Porca Sextavada M8",
+  "saldoInicial": 250
+}
+
+###
+
+### Testar Validação - Payload Inválido (FluentValidation - 400 Bad Request)
+POST {{Estoque.API_HostAddress}}/api/produtos
+Content-Type: application/json
+
+{
+  "codigo": "",
+  "descricao": "",
+  "saldoInicial": -10
+}
+
+###
+
+### Listar Todos os Produtos
+GET {{Estoque.API_HostAddress}}/api/produtos
+Accept: application/json
+
+###
+
+### Listar Produtos com Filtro de Busca
+GET {{Estoque.API_HostAddress}}/api/produtos?busca=Parafuso
+Accept: application/json
+
+###
+
+### Obter Produto por Código
+GET {{Estoque.API_HostAddress}}/api/produtos/codigo/PROD001
+Accept: application/json
+
+###
+
+### Obter Produto por ID (Substituir pelo ID gerado)
+GET {{Estoque.API_HostAddress}}/api/produtos/00000000-0000-0000-0000-000000000000
 Accept: application/json
 
 ###
