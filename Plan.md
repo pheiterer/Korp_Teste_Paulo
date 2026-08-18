@@ -181,24 +181,24 @@
   - [x] Criar `Dockerfile` multi-stage para a `gateway-api` e registrar o container no `docker-compose.yml` exposto na porta `8080`.
   - [x] Configurar exportação de métricas Prometheus (`/metrics`) e endpoint `/health` nativo do Gateway.
 
-### Issue 11: Feedback de Falhas (SignalR)
-- **Status:** ⏳ Em Progresso
+### Issue 11: Feedback de Falhas (SignalR) - [✅ Concluído]
+- **Status:** ✅ Concluído
 - **Descrição:** Fornecer feedback assíncrono em tempo real ao usuário sobre o status das notas fiscais e falhas de estoque.
 - **Stack:** SignalR & MassTransit (RabbitMQ).
 - **Tarefas:**
-  - [ ] Configurar o `NotificationHub` no API Gateway exposto na rota `/hubs/notificacoes`.
-  - [ ] Configurar suporte a WebSockets e Session Affinity no YARP/ASP.NET Core para manter as conexões ativas.
-  - [ ] Criar consumidores de eventos MassTransit (`AbatimentoEstoqueFalhouConsumer` e `NotaFiscalAbatidaConsumer`) no Gateway para escutar o RabbitMQ.
-  - [ ] Notificar os clientes frontend conectados no SignalR Hub em tempo real quando ocorrer falha de saldo insuficiente ou sucesso no abatimento de estoque.
+  - [x] Configurar o `NotificationHub` no API Gateway exposto na rota `/hubs/notificacoes`.
+  - [x] Configurar suporte a WebSockets e Session Affinity no YARP/ASP.NET Core para manter as conexões ativas.
+  - [x] Criar consumidores de eventos MassTransit (`AbatimentoEstoqueFalhouConsumer` e `NotaFiscalAbatidaConsumer`) no Gateway para escutar o RabbitMQ.
+  - [x] Notificar os clientes frontend conectados no SignalR Hub em tempo real quando ocorrer falha de saldo insuficiente ou sucesso no abatimento de estoque.
 
-### Issue 11.1: Geração e Propagação de Correlation ID (API Gateway)
-- **Status:** ⏳ Em Progresso
+### Issue 11.1: Geração e Propagação de Correlation ID (API Gateway) - [✅ Concluído]
+- **Status:** ✅ Concluído
 - **Descrição:** Garantir que todas as requisições de entrada recebam um Correlation ID para rastreamento distribuído fim a fim.
 - **Stack:** YARP (.NET 10) Middleware & Transforms.
 - **Tarefas:**
-  - [ ] Criar `CorrelationIdMiddleware` no YARP Gateway para extrair ou gerar um GUID único (`X-Correlation-ID`).
-  - [ ] Injetar o `CorrelationId` no contexto de log do Serilog e configurar YARP Transforms para propagar o cabeçalho `X-Correlation-ID` em todas as requisições HTTP downstream enviadas aos microsserviços.
-  - [ ] Desenvolver testes unitários para validar o middleware de Correlation ID e o fluxo de envio de notificações no SignalR.
+  - [x] Criar `CorrelationIdMiddleware` no YARP Gateway para extrair ou gerar um GUID único (`X-Correlation-ID`).
+  - [x] Injetar o `CorrelationId` no contexto de log do Serilog e configurar YARP Transforms para propagar o cabeçalho `X-Correlation-ID` em todas as requisições HTTP downstream enviadas aos microsserviços.
+  - [x] Desenvolver testes unitários para validar o middleware de Correlation ID e o fluxo de envio de notificações no SignalR.
 
 
 ---
