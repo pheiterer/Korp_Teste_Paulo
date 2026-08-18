@@ -168,26 +168,37 @@
 
 ## Épico 4: API Gateway e Comunicação em Tempo Real
 
-### Issue 10: API Gateway (YARP)
-- **Descrição:** Centralizar as chamadas do Frontend.
-- **Stack:** YARP (Yet Another Reverse Proxy) no .NET.
+### Issue 10: API Gateway (YARP) - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Centralizar as chamadas do Frontend e unificar a entrada dos microsserviços de Estoque e Faturamento.
+- **Stack:** YARP (Yet Another Reverse Proxy) no .NET 10.
 - **Tarefas:**
-  - Criar um projeto .NET vazio e configurar o pacote do YARP.
-  - Roteamento: Mapear `/api/produtos` para o container do Estoque e `/api/notas` para o Faturamento.
+  - [x] Criar projeto `gateway-api` em .NET 10 e instalar pacotes do YARP (`Yarp.ReverseProxy`), MassTransit (`MassTransit.RabbitMQ`), Serilog e Prometheus.
+  - [x] Configurar rotas e clusters do YARP no `appsettings.json` para mapear:
+    - `/api/produtos/{**catch-all}` ➔ `http://estoque-api:8080/api/produtos/{**catch-all}`
+    - `/api/v1/notas-fiscais/{**catch-all}` e `/api/notas-fiscais/{**catch-all}` ➔ `http://faturamento-api:8082/api/v1/notas-fiscais/{**catch-all}`
+    - `/health/estoque` e `/health/faturamento` ➔ endpoints de healthcheck dos microsserviços downstream.
+  - [x] Criar `Dockerfile` multi-stage para a `gateway-api` e registrar o container no `docker-compose.yml` exposto na porta `8080`.
+  - [x] Configurar exportação de métricas Prometheus (`/metrics`) e endpoint `/health` nativo do Gateway.
 
 ### Issue 11: Feedback de Falhas (SignalR)
-- **Descrição:** Atender ao requisito de fornecer feedback apropriado em caso de falhas assíncronas.
-- **Stack:** SignalR.
+- **Status:** ⏳ Em Progresso
+- **Descrição:** Fornecer feedback assíncrono em tempo real ao usuário sobre o status das notas fiscais e falhas de estoque.
+- **Stack:** SignalR & MassTransit (RabbitMQ).
 - **Tarefas:**
-  - Configurar um Hub do SignalR no API Gateway.
-  - Configurar a propriedade de Session Affinity e habilitar o suporte a WebSockets nas diretivas do YARP para garantir o fluxo contínuo de mensagens do SignalR downstream.
-  - Se o Serviço de Estoque falhar ao processar a mensagem do RabbitMQ (ex: saldo insuficiente), ele publica um evento de erro. O Gateway consome e avisa o Frontend via WebSocket em tempo real.
+  - [ ] Configurar o `NotificationHub` no API Gateway exposto na rota `/hubs/notificacoes`.
+  - [ ] Configurar suporte a WebSockets e Session Affinity no YARP/ASP.NET Core para manter as conexões ativas.
+  - [ ] Criar consumidores de eventos MassTransit (`AbatimentoEstoqueFalhouConsumer` e `NotaFiscalAbatidaConsumer`) no Gateway para escutar o RabbitMQ.
+  - [ ] Notificar os clientes frontend conectados no SignalR Hub em tempo real quando ocorrer falha de saldo insuficiente ou sucesso no abatimento de estoque.
 
 ### Issue 11.1: Geração e Propagação de Correlation ID (API Gateway)
-- **Descrição:** Garantir que todas as requisições de entrada recebam um Correlation ID para rastreamento distribuído.
-- **Stack:** YARP (.NET 10).
+- **Status:** ⏳ Em Progresso
+- **Descrição:** Garantir que todas as requisições de entrada recebam um Correlation ID para rastreamento distribuído fim a fim.
+- **Stack:** YARP (.NET 10) Middleware & Transforms.
 - **Tarefas:**
-  - Configurar middleware no YARP Gateway para gerar um GUID único (`X-Correlation-ID`) caso não esteja presente na requisição e propagá-lo nos cabeçalhos HTTP enviados para os microsserviços downstream.
+  - [ ] Criar `CorrelationIdMiddleware` no YARP Gateway para extrair ou gerar um GUID único (`X-Correlation-ID`).
+  - [ ] Injetar o `CorrelationId` no contexto de log do Serilog e configurar YARP Transforms para propagar o cabeçalho `X-Correlation-ID` em todas as requisições HTTP downstream enviadas aos microsserviços.
+  - [ ] Desenvolver testes unitários para validar o middleware de Correlation ID e o fluxo de envio de notificações no SignalR.
 
 
 ---
