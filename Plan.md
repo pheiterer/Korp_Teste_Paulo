@@ -113,16 +113,19 @@
 
 ## Épico 3: Microsserviço de Faturamento / Nota Fiscal (Go / Golang)
 
-### Issue 7: Setup e Estrutura Base (Faturamento - Go)
+### Issue 7: Setup e Estrutura Base (Faturamento - Go) - [✅ Concluído]
+- **Status:** ✅ Concluído
 - **Descrição:** Inicializar a API REST de Faturamento utilizando Go.
-- **Stack:** Go (Golang), Gin/Fiber.
+- **Stack:** Go (Golang), Gin, GORM, testify.
 - **Tarefas:**
-  - Inicializar o projeto executando `go mod init faturamento-api` para controle de dependências, garantindo o requisito de detalhamento técnico.
-  - Estruturar o projeto seguindo o padrão de pastas da comunidade Go (`/cmd`, `/internal/domain`, `/internal/handlers`).
-  - Configurar o framework web Gin ou Fiber para roteamento REST.
-  - Configurar o pacote de logs estruturados nativo `log/slog`.
-  - Implementar o tratamento explícito de erros nativo do Go (`if err != nil`) nos handlers, padronizando o retorno das exceções em JSON.
-  - Configurar tags de struct do GORM para mapeamento explícito de tipos de dados compatíveis com o SQL Server (ex: mapear IDs de produtos e sequenciais para tipos de dados inteiros e decimais performáticos).
+  - [x] Inicializar o projeto executando `go mod init faturamento-api` para controle de dependências, garantindo o requisito de detalhamento técnico.
+  - [x] Estruturar o projeto seguindo o padrão de pastas da comunidade Go (`/cmd`, `/internal/domain`, `/internal/handlers`).
+  - [x] Configurar o framework web Gin para roteamento REST e middleware global de tratamento de erros.
+  - [x] Configurar o pacote de logs estruturados nativo `log/slog` (formato JSON).
+  - [x] Implementar o tratamento explícito de erros nativo do Go (`if err != nil`) nos handlers, padronizando o retorno das exceções em JSON.
+  - [x] Configurar tags de struct do GORM para mapeamento explícito de tipos de dados compatíveis com o SQL Server (ex: IDs e inteiros `type:bigint`, decimais `type:decimal(18,2)`).
+  - [x] Criar testes unitários para a struct de domínio (`domain/nota_fiscal_test.go`) e para os handlers HTTP (`handlers/health_test.go`) usando o pacote `testing` e a biblioteca `testify/assert`.
+
 
 ### Issue 8: Domínio, Persistência e Swagger (Faturamento - Go)
 - **Descrição:** Implementar a entidade de Nota Fiscal e conectar ao SQL Server.
