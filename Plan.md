@@ -58,13 +58,14 @@
     - Configurar o **Swagger / OpenAPI** com documentação interativa da API e comentários XML.
     - Configurar o container nativo de **Injeção de Dependência** (`IServiceCollection`) promovendo desacoplamento de interfaces e Inversão de Controle (`IoC`).
 
-### Issue 4: Domínio e Persistência de Produtos (Estoque)
+### Issue 4: Domínio e Persistência de Produtos (Estoque) - [✅ Concluído]
+- **Status:** ✅ Concluído
 - **Descrição:** Modelar a entidade de Produto e configurar o banco de dados.
 - **Stack:** EF Core, PostgreSQL.
 - **Tarefas:**
-  - Criar a entidade `Produto` com Código, Descrição e Saldo.
-  - Configurar o mapeamento do EF Core (Fluent API).
-  - Gerar e aplicar as Migrations no PostgreSQL.
+  - [x] Criar a entidade `Produto` com Código, Descrição e Saldo.
+  - [x] Configurar o mapeamento do EF Core (Fluent API).
+  - [x] Gerar e aplicar as Migrations no PostgreSQL.
 - **Critério de Aceite:** Tabela de produtos criada com sucesso no banco de dados.
 
 ### Issue 5: Endpoints REST e Regras de Negócio (Estoque)
