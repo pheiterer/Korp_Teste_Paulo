@@ -12,11 +12,13 @@ func TestNewNotaFiscal_Sucesso(t *testing.T) {
 	itens := []domain.NotaFiscalItem{
 		{
 			ProdutoID:     101,
+			CodigoProduto: "PROD101",
 			Quantidade:    2,
 			PrecoUnitario: 50.0,
 		},
 		{
 			ProdutoID:     102,
+			CodigoProduto: "PROD102",
 			Quantidade:    1,
 			PrecoUnitario: 30.0,
 		},
@@ -26,10 +28,12 @@ func TestNewNotaFiscal_Sucesso(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, nota)
+	assert.NotEmpty(t, nota.UUID)
 	assert.Equal(t, int64(1), nota.NumeroSequencial)
 	assert.Equal(t, domain.StatusAberta, nota.Status)
 	assert.Equal(t, 130.0, nota.ValorTotal)
 	assert.Len(t, nota.Itens, 2)
+	assert.Equal(t, "PROD101", nota.Itens[0].CodigoProduto)
 	assert.Equal(t, 100.0, nota.Itens[0].Subtotal)
 	assert.Equal(t, 30.0, nota.Itens[1].Subtotal)
 }
@@ -71,7 +75,7 @@ func TestNewNotaFiscal_PrecoInvalido(t *testing.T) {
 	assert.Nil(t, nota)
 }
 
-func TestNotaFiscal_FecharSucesso(t *testing.T) {
+func TestNotaFiscal_IniciarProcessamentoSucesso(t *testing.T) {
 	itens := []domain.NotaFiscalItem{
 		{
 			ProdutoID:     1,
@@ -83,12 +87,12 @@ func TestNotaFiscal_FecharSucesso(t *testing.T) {
 	nota, err := domain.NewNotaFiscal(1, itens)
 	assert.NoError(t, err)
 
-	err = nota.Fechar()
+	err = nota.IniciarProcessamento()
 	assert.NoError(t, err)
-	assert.Equal(t, domain.StatusFechada, nota.Status)
+	assert.Equal(t, domain.StatusEmProcessamento, nota.Status)
 }
 
-func TestNotaFiscal_FecharJaFechada(t *testing.T) {
+func TestNotaFiscal_IniciarProcessamentoJaProcessando(t *testing.T) {
 	itens := []domain.NotaFiscalItem{
 		{
 			ProdutoID:     1,
@@ -99,9 +103,9 @@ func TestNotaFiscal_FecharJaFechada(t *testing.T) {
 
 	nota, err := domain.NewNotaFiscal(1, itens)
 	assert.NoError(t, err)
-	_ = nota.Fechar()
+	_ = nota.IniciarProcessamento()
 
-	// Tentativa de fechar novamente deve falhar
-	err = nota.Fechar()
+	// Tentativa de processar novamente deve falhar pois status nao eh mais 'Aberta'
+	err = nota.IniciarProcessamento()
 	assert.ErrorIs(t, err, domain.ErrNotaNaoAberta)
 }

@@ -11,8 +11,11 @@ import (
 	"time"
 
 	_ "faturamento-api/docs"
+	"faturamento-api/internal/cache"
 	"faturamento-api/internal/database"
 	"faturamento-api/internal/handlers"
+	"faturamento-api/internal/messaging"
+	"faturamento-api/internal/repository"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -44,26 +47,37 @@ func main() {
 	slog.Info("Inicializando o Microsservico de Faturamento (Go)...")
 
 	// 2. Conexao com o SQL Server (GORM & AutoMigrate)
-	if _, err := database.ConnectDB(); err != nil {
+	db, err := database.ConnectDB()
+	if err != nil {
 		slog.Warn("Banco de dados SQL Server nao disponivel no startup local. Continuando inicializacao do servidor HTTP...", slog.String("error", err.Error()))
 	}
 
-	// 3. Modo do Gin baseado em variavel de ambiente
+	// 3. Inicializacao do Repositorio, Servico de Mensageria e Cache Redis
+	notaRepo := repository.NewNotaFiscalRepository(db)
+	rabbitMQ := messaging.NewRabbitMQService()
+	redisCache := cache.NewRedisCacheService()
+	notaHandler := handlers.NewNotaFiscalHandler(notaRepo, rabbitMQ, redisCache)
+
+	// Inicializa consumidor de confirmacao e falha assincrona no RabbitMQ
+	consumerService := messaging.NewConsumerService(rabbitMQ.ConnURL(), notaRepo)
+	consumerService.StartConsuming(context.Background())
+
+	// 4. Modo do Gin baseado em variavel de ambiente
 	if os.Getenv("GIN_MODE") == "" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// 4. Inicializacao do Roteador Gin
+	// 5. Inicializacao do Roteador Gin
 	router := gin.New()
 
 	// Middlewares globais
 	router.Use(gin.Logger())
 	router.Use(handlers.GlobalErrorHandler())
 
-	// 5. Mapeamento da Rota Interativa do Swagger UI
+	// 6. Mapeamento da Rota Interativa do Swagger UI
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// 6. Mapeamento de Rotas Base
+	// 7. Mapeamento de Rotas Base
 	router.GET("/health", handlers.HealthCheckHandler)
 
 	apiV1 := router.Group("/api/v1")
@@ -74,6 +88,12 @@ func main() {
 				"time":    time.Now(),
 			})
 		})
+
+		// Rotas de Notas Fiscais (Issue 9)
+		apiV1.POST("/notas-fiscais", notaHandler.CreateNotaFiscalHandler)
+		apiV1.POST("/notas-fiscais/:id/imprimir", notaHandler.ImprimirNotaFiscalHandler)
+		apiV1.GET("/notas-fiscais", notaHandler.ListNotasFiscaisHandler)
+		apiV1.GET("/notas-fiscais/:id", notaHandler.GetNotaFiscalByIDHandler)
 	}
 
 	// 7. Port Config

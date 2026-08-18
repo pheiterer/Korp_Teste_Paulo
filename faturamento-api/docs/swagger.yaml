@@ -8,6 +8,33 @@ definitions:
       success:
         type: boolean
     type: object
+  handlers.CreateNotaFiscalItemRequest:
+    properties:
+      codigo_produto:
+        type: string
+      preco_unitario:
+        minimum: 0
+        type: number
+      produto_id:
+        type: integer
+      quantidade:
+        type: integer
+    required:
+    - preco_unitario
+    - quantidade
+    type: object
+  handlers.CreateNotaFiscalRequest:
+    properties:
+      itens:
+        items:
+          $ref: '#/definitions/handlers.CreateNotaFiscalItemRequest'
+        minItems: 1
+        type: array
+      numero_sequencial:
+        type: integer
+    required:
+    - itens
+    type: object
   handlers.ErrorResponse:
     properties:
       code:
@@ -42,6 +69,112 @@ info:
   title: API de Faturamento (Microsservico Go)
   version: "1.0"
 paths:
+  /api/v1/notas-fiscais:
+    get:
+      description: Retorna a lista de todas as notas fiscais com seus respectivos
+        itens.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+      summary: Listar Notas Fiscais
+      tags:
+      - Notas Fiscais
+    post:
+      consumes:
+      - application/json
+      description: Cria uma nova Nota Fiscal no banco de dados com status 'Aberta'.
+      parameters:
+      - description: Payload de Criacao da Nota Fiscal
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateNotaFiscalRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+      summary: Criar Nota Fiscal
+      tags:
+      - Notas Fiscais
+  /api/v1/notas-fiscais/{id}:
+    get:
+      description: Retorna os detalhes de uma nota fiscal pelo seu ID ou UUID.
+      parameters:
+      - description: ID ou UUID da Nota Fiscal
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+      summary: Buscar Nota Fiscal por ID
+      tags:
+      - Notas Fiscais
+  /api/v1/notas-fiscais/{id}/imprimir:
+    post:
+      description: Altera o status da Nota Fiscal para 'Fechada' e dispara o evento
+        assincrono NotaFiscalEmitidaEvent para o RabbitMQ.
+      parameters:
+      - description: ID ou UUID da Nota Fiscal
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+      summary: Imprimir Nota Fiscal
+      tags:
+      - Notas Fiscais
   /health:
     get:
       description: Retorna o estado de saude do microsservico de faturamento

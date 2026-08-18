@@ -36,13 +36,20 @@ services:
       - GIN_MODE=release
       - PORT=8082
       - ConnectionStrings__SqlServer=sqlserver://sa:YourPassword123!@sqlserver:1433?database=faturamentodb&encrypt=disable
+      - ConnectionStrings__Redis=redis:6379
+      - REDIS_HOST=redis:6379
       - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Username=guest
       - RabbitMQ__Password=guest
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASS=guest
     depends_on:
       sqlserver:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - korp-network

@@ -17,3 +17,8 @@ public record AbatimentoEstoqueFalhouEvent(
     string Motivo,
     DateTime DataFalha
 );
+
+public record NotaFiscalAbatidaEvent(
+    Guid NotaFiscalId,
+    DateTime DataAbatimento
+);

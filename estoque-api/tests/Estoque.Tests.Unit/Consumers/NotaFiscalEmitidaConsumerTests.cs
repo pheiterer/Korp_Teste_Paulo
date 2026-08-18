@@ -17,6 +17,7 @@ public class NotaFiscalEmitidaConsumerTests
     private readonly Mock<IProdutoRepository> _produtoRepositoryMock;
     private readonly Mock<IIdempotencyService> _idempotencyServiceMock;
     private readonly Mock<IDistributedLockService> _distributedLockServiceMock;
+    private readonly Mock<IProdutoCacheService> _cacheServiceMock;
     private readonly Mock<ILogger<NotaFiscalEmitidaConsumer>> _loggerMock;
     private readonly Mock<ConsumeContext<NotaFiscalEmitidaEvent>> _consumeContextMock;
     private readonly EstoqueDbContext _context;
@@ -27,6 +28,7 @@ public class NotaFiscalEmitidaConsumerTests
         _produtoRepositoryMock = new Mock<IProdutoRepository>();
         _idempotencyServiceMock = new Mock<IIdempotencyService>();
         _distributedLockServiceMock = new Mock<IDistributedLockService>();
+        _cacheServiceMock = new Mock<IProdutoCacheService>();
         _loggerMock = new Mock<ILogger<NotaFiscalEmitidaConsumer>>();
         _consumeContextMock = new Mock<ConsumeContext<NotaFiscalEmitidaEvent>>();
 
@@ -41,6 +43,7 @@ public class NotaFiscalEmitidaConsumerTests
             _context,
             _idempotencyServiceMock.Object,
             _distributedLockServiceMock.Object,
+            _cacheServiceMock.Object,
             _loggerMock.Object
         );
     }

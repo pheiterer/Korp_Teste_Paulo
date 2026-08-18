@@ -11,11 +11,16 @@ public class ProdutoService : IProdutoService
 {
     private readonly IProdutoRepository _produtoRepository;
     private readonly IValidator<CreateProdutoRequest> _validator;
+    private readonly IProdutoCacheService _cacheService;
 
-    public ProdutoService(IProdutoRepository produtoRepository, IValidator<CreateProdutoRequest> validator)
+    public ProdutoService(
+        IProdutoRepository produtoRepository,
+        IValidator<CreateProdutoRequest> validator,
+        IProdutoCacheService cacheService = null!)
     {
         _produtoRepository = produtoRepository ?? throw new ArgumentNullException(nameof(produtoRepository));
         _validator = validator ?? throw new ArgumentNullException(nameof(validator));
+        _cacheService = cacheService;
     }
 
     public async Task<ProdutoResponse> CriarAsync(CreateProdutoRequest request, CancellationToken cancellationToken = default)
@@ -36,6 +41,11 @@ public class ProdutoService : IProdutoService
 
         await _produtoRepository.AddAsync(produto, cancellationToken);
         await _produtoRepository.SaveChangesAsync(cancellationToken);
+
+        if (_cacheService != null)
+        {
+            await _cacheService.SetProdutoCacheAsync(produto.Codigo, produto.Descricao, produto.Saldo, cancellationToken);
+        }
 
         return MapToResponse(produto);
     }
