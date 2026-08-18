@@ -205,28 +205,46 @@
 
 ## Épico 5: Frontend Angular
 
-### Issue 12: Setup do Projeto e Arquitetura
-- **Descrição:** Estruturar a aplicação cliente.
-- **Stack:** Angular 17+ (Standalone Components).
+### Issue 12: Setup do Projeto, Arquitetura Standalone, Interceptors & SignalR Client - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Estruturar a aplicação cliente Angular 19+ utilizando Standalone Components, biblioteca visual, gerenciamento de serviços, interceptors HTTP globais (Correlation ID e Tratamento de Erros) e integração WebSocket com SignalR.
+- **Stack:** Angular 19+ (Standalone Components), RxJS, `@microsoft/signalr`, Lucide Icons, SCSS Design System.
 - **Tarefas:**
-  - Criar projeto via Angular CLI.
-  - Configurar biblioteca visual (ex: Angular Material ou PrimeNG) para os componentes visuais.
-  - Criar os services para comunicação HTTP com o API Gateway utilizando o ciclo de vida adequado (`ngOnInit`, `ngOnDestroy`).
-  - Implementar um `HttpInterceptor` global no Angular para interceptar respostas de erro (400 Bad Request, 500 Internal Server Error) vindas do YARP Gateway e exibir alertas amigáveis para o usuário na interface (utilizando os componentes da biblioteca visual escolhida).
+  - [x] Criar o projeto Angular standalone via Angular CLI na pasta `frontend` (`ng new` com roteamento e SCSS).
+  - [x] Configurar biblioteca de componentes visuais, ícones e sistema de design SCSS para formulários, dialogs, snackbars, toasters e tabelas responsivas.
+  - [x] Implementar o `CorrelationIdInterceptor` global no Angular para gerar/injetar o cabeçalho `X-Correlation-ID` (UUID v4) em todas as requisições HTTP enviadas ao API Gateway.
+  - [x] Implementar o `ErrorInterceptor` global para capturar respostas no padrão `ProblemDetails` / `ValidationProblemDetails` (HTTP 400 Bad Request e 500 Internal Server Error) vindas do YARP Gateway e exibir alertas amigáveis para o usuário na interface.
+  - [x] Criar o `SignalRService` injetável para gerenciar a conexão WebSocket com o API Gateway (`http://localhost:8080/hubs/notificacoes`), garantindo reconexão automática e limpeza de subscrições no ciclo de vida (`ngOnInit`/`ngOnDestroy`).
 
-### Issue 13: Telas de Cadastro (Produto e Nota Fiscal)
-- **Descrição:** Desenvolver as interfaces de usuário solicitadas.
+### Issue 13: Telas e Formulários Reativos (Produtos e Notas Fiscais)
+- **Descrição:** Desenvolver as interfaces de formulários reativos para cadastro e visualização em tempo real de Produtos e Notas Fiscais.
+- **Stack:** ReactiveFormsModule, FormBuilder, RxJS, Angular Material.
 - **Tarefas:**
-  - Criar tela "Cadastro de Produtos" (Inputs de Código, Descrição e Saldo).
-  - Criar tela "Cadastro de Notas Fiscais" com formulário reativo para permitir múltiplos itens na mesma nota.
+  - [ ] Criar o componente `ProdutoCadastroComponent` (inputs validados de Código, Descrição e Saldo Inicial).
+  - [ ] Criar o componente `ProdutoListComponent` para exibição reativa da tabela de produtos e saldos atualizados de estoque.
+  - [ ] Criar o componente `NotaFiscalCadastroComponent` com formulário reativo flexível (`FormArray`) para permitir múltiplos itens na mesma nota fiscal.
+  - [ ] Integrar autocomplete/seleção dinâmica de produtos cadastrados (`GET /api/produtos`) no formulário de notas fiscais.
+  - [ ] Criar o componente `NotaFiscalListComponent` para visualização das notas fiscais com badges de status (`Aberta`, `EmProcessamento`, `Fechada`, `Cancelada`).
 
-### Issue 14: Tela de Impressão e Reatividade
-- **Descrição:** Lidar com chamadas assíncronas e feedback visual.
-- **Stack:** RxJS.
+### Issue 14: Tela de Impressão, Transições de Estado (Saga) e Reatividade em Tempo Real (SignalR & RxJS)
+- **Descrição:** Implementar a ação de impressão/emissão de nota fiscal, controle de loading reativo, manipulação de streams com RxJS e consumo de eventos em tempo real via SignalR.
+- **Stack:** RxJS (`switchMap`, `catchError`, `tap`, `takeUntilDestroyed`), `@microsoft/signalr`.
 - **Tarefas:**
-  - Criar o botão "Imprimir Nota" em tela.
-  - Implementar o uso extensivo do RxJS (operadores como `switchMap`, `catchError`, `tap`) para gerenciar as chamadas e o loading spinner.
-  - Ouvir os eventos do SignalR para atualizar o status da nota (Aberta -> Fechada) e atualizar os saldos na interface.
+  - [ ] Criar o botão "Imprimir Nota" acionando o endpoint `POST /api/v1/notas-fiscais/:id/imprimir` via YARP Gateway.
+  - [ ] Alterar o status da nota imediatamente para `"EmProcessamento"` na interface e ativar indicador de carregamento/spinner reativo.
+  - [ ] Utilizar operadores do RxJS (`switchMap`, `catchError`, `tap`) para gerenciar as chamadas assíncronas e desinscrições no ciclo de vida.
+  - [ ] Escutar os eventos do `SignalRService`:
+    - Evento `NotaFiscalAbatida`: Atualizar status da nota fiscal para `"Fechada"`, emitir alerta de sucesso e atualizar o saldo de estoque dos produtos na tabela.
+    - Evento `AbatimentoEstoqueFalhou`: Processar o retorno da Saga compensatória na UI, alterando o status da nota para `"Cancelada"` e exibindo Toast/Snackbar de erro detalhando o motivo (ex: Saldo Insuficiente).
+
+### Issue 14.1: Containerização Docker (Nginx), Configuração de Ambiente e Health Check (Frontend)
+- **Descrição:** Preparar a aplicação Angular para rodar em container Docker multi-stage via Nginx e integrar ao ecossistema `docker-compose.yml`.
+- **Stack:** Docker, Nginx Alpine, Docker Compose.
+- **Tarefas:**
+  - [ ] Criar o arquivo `Dockerfile` multi-stage para a aplicação Angular (Stage 1: `node:20-alpine` para compilação; Stage 2: `nginx:alpine` para servir a SPA).
+  - [ ] Criar o arquivo de configuração `nginx.conf` pré-configurado para roteamento SPA (`try_files $uri $uri/ /index.html`).
+  - [ ] Configurar arquivos `environment.ts` e `environment.prod.ts` com o endpoint base do API Gateway (`http://localhost:8080`).
+  - [ ] Adicionar o serviço `frontend-angular` no `docker-compose.yml` exposto na porta `4200` integrado aos demais containers da solução.
 
 ---
 
