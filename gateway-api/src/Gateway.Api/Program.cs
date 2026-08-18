@@ -1,11 +1,14 @@
+using Gateway.Api.Consumers;
+using Gateway.Api.Hubs;
 using Gateway.Api.Middleware;
+using MassTransit;
 using Prometheus;
 using Serilog;
 using Yarp.ReverseProxy.Transforms;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configurar Serilog para logs estruturados
+// 1. Configurar Serilog para logs estruturados com suporte a CorrelationId
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
@@ -14,12 +17,36 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
-// 2. Adicionar suporte ao YARP Reverse Proxy com transformadores de cabeçalho
+// 2. Configurar SignalR para comunicação em tempo real via WebSockets
+builder.Services.AddSignalR();
+
+// 3. Configurar MassTransit com RabbitMQ para escutar eventos de falha e sucesso de estoque
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumer<AbatimentoEstoqueFalhouConsumer>();
+    x.AddConsumer<NotaFiscalAbatidaConsumer>();
+
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        var host = builder.Configuration["RabbitMQ:Host"] ?? "localhost";
+        var username = builder.Configuration["RabbitMQ:Username"] ?? "guest";
+        var password = builder.Configuration["RabbitMQ:Password"] ?? "guest";
+
+        cfg.Host(host, "/", h =>
+        {
+            h.Username(username);
+            h.Password(password);
+        });
+
+        cfg.ConfigureEndpoints(context);
+    });
+});
+
+// 4. Adicionar suporte ao YARP Reverse Proxy com transformadores de cabeçalho
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
     .AddTransforms(transformBuilderContext =>
     {
-        // Garante que o CorrelationId do Request HTTP atual seja propagado nos cabeçalhos downstream
         transformBuilderContext.AddRequestTransform(async transformContext =>
         {
             if (transformContext.HttpContext.Request.Headers.TryGetValue("X-Correlation-ID", out var correlationId) && !string.IsNullOrEmpty(correlationId))
@@ -31,24 +58,26 @@ builder.Services.AddReverseProxy()
         });
     });
 
-// 3. Adicionar Health Checks e Métricas Prometheus
+// 5. Adicionar Health Checks
 builder.Services.AddHealthChecks();
 
-// 4. Configurar CORS (para integração com Frontend Angular no Épico 5)
+// 6. Configurar CORS (suporte a SignalR com credentials e WebSockets no Angular)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(_ => true)
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
 var app = builder.Build();
 
-// 5. Pipeline de Middlewares HTTP
+// 7. Pipeline de Middlewares HTTP & WebSockets
 app.UseCors("AllowAll");
+app.UseWebSockets();
 
 // Prometheus Http Metrics
 app.UseHttpMetrics();
@@ -60,10 +89,13 @@ app.UseMiddleware<CorrelationIdMiddleware>();
 app.MapHealthChecks("/health");
 app.MapMetrics("/metrics");
 
-// Rota raiz para identificação amigável da API Gateway
+// SignalR Hub Endpoint
+app.MapHub<NotificationHub>("/hubs/notificacoes");
+
+// Rota raiz para identificação amigável do API Gateway
 app.MapGet("/", () => Results.Ok(new
 {
-    Service = "API Gateway (YARP)",
+    Service = "API Gateway (YARP & SignalR Hub)",
     Status = "Healthy",
     Timestamp = DateTime.UtcNow
 }));
