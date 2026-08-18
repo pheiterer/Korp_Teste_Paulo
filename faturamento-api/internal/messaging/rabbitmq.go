@@ -92,6 +92,18 @@ func (r *RabbitMQService) ConnURL() string {
 	return r.connURL
 }
 
+func (r *RabbitMQService) IsConnected(ctx context.Context) bool {
+	if r == nil || r.connURL == "" {
+		return false
+	}
+	conn, err := amqp.Dial(r.connURL)
+	if err != nil {
+		return false
+	}
+	_ = conn.Close()
+	return true
+}
+
 // PublishNotaFiscalEmitida publica o evento de nota fiscal emitida no RabbitMQ.
 func (r *RabbitMQService) PublishNotaFiscalEmitida(ctx context.Context, nota *domain.NotaFiscal, correlationID string) error {
 	conn, err := amqp.Dial(r.connURL)

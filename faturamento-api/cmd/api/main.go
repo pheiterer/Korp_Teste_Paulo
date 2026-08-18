@@ -15,9 +15,11 @@ import (
 	"faturamento-api/internal/database"
 	"faturamento-api/internal/handlers"
 	"faturamento-api/internal/messaging"
+	"faturamento-api/internal/middleware"
 	"faturamento-api/internal/repository"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -57,6 +59,7 @@ func main() {
 	rabbitMQ := messaging.NewRabbitMQService()
 	redisCache := cache.NewRedisCacheService()
 	notaHandler := handlers.NewNotaFiscalHandler(notaRepo, rabbitMQ, redisCache)
+	healthHandler := handlers.NewHealthHandler(db, redisCache, rabbitMQ)
 
 	// Inicializa consumidor de confirmacao e falha assincrona no RabbitMQ
 	consumerService := messaging.NewConsumerService(rabbitMQ.ConnURL(), notaRepo)
@@ -72,13 +75,15 @@ func main() {
 
 	// Middlewares globais
 	router.Use(gin.Logger())
+	router.Use(middleware.CorrelationIDMiddleware())
 	router.Use(handlers.GlobalErrorHandler())
 
 	// 6. Mapeamento da Rota Interativa do Swagger UI
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// 7. Mapeamento de Rotas Base
-	router.GET("/health", handlers.HealthCheckHandler)
+	router.GET("/health", healthHandler.HealthCheckHandler)
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	apiV1 := router.Group("/api/v1")
 	{

@@ -183,7 +183,7 @@ const docTemplate = `{
         },
         "/health": {
             "get": {
-                "description": "Retorna o estado de saude do microsservico de faturamento",
+                "description": "Realiza a verificacao de saude da API de Faturamento e de suas dependencias de infraestrutura.",
                 "produces": [
                     "application/json"
                 ],
@@ -195,19 +195,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/handlers.APIResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/handlers.HealthResponse"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/handlers.ComponentHealthResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ComponentHealthResponse"
                         }
                     }
                 }
@@ -224,6 +218,37 @@ const docTemplate = `{
                 },
                 "success": {
                     "type": "boolean"
+                }
+            }
+        },
+        "handlers.ComponentHealth": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.ComponentHealthResponse": {
+            "type": "object",
+            "properties": {
+                "components": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/handlers.ComponentHealth"
+                    }
+                },
+                "service": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
                 }
             }
         },
@@ -280,20 +305,6 @@ const docTemplate = `{
                     }
                 },
                 "message": {
-                    "type": "string"
-                }
-            }
-        },
-        "handlers.HealthResponse": {
-            "type": "object",
-            "properties": {
-                "service": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "timestamp": {
                     "type": "string"
                 }
             }

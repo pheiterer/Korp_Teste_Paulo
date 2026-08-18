@@ -12,32 +12,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func SetupTestRouter() *gin.Engine {
+func SetupHealthTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	r.Use(handlers.GlobalErrorHandler())
-	r.GET("/health", handlers.HealthCheckHandler)
+	healthHandler := handlers.NewHealthHandler(nil, nil, nil)
+	r.GET("/health", healthHandler.HealthCheckHandler)
 	return r
 }
 
 func TestHealthCheckHandler(t *testing.T) {
-	router := SetupTestRouter()
+	router := SetupHealthTestRouter()
 
 	req, _ := http.NewRequest(http.MethodGet, "/health", nil)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
 
-	var res handlers.APIResponse
+	var res handlers.ComponentHealthResponse
 	err := json.Unmarshal(w.Body.Bytes(), &res)
 	assert.NoError(t, err)
-	assert.True(t, res.Success)
-	assert.Nil(t, res.Error)
-
-	dataMap, ok := res.Data.(map[string]any)
-	assert.True(t, ok)
-	assert.Equal(t, "healthy", dataMap["status"])
-	assert.Equal(t, "faturamento-api", dataMap["service"])
+	assert.Equal(t, "unhealthy", res.Status)
+	assert.Equal(t, "faturamento-api", res.Service)
 }

@@ -8,6 +8,26 @@ definitions:
       success:
         type: boolean
     type: object
+  handlers.ComponentHealth:
+    properties:
+      error:
+        type: string
+      status:
+        type: string
+    type: object
+  handlers.ComponentHealthResponse:
+    properties:
+      components:
+        additionalProperties:
+          $ref: '#/definitions/handlers.ComponentHealth'
+        type: object
+      service:
+        type: string
+      status:
+        type: string
+      timestamp:
+        type: string
+    type: object
   handlers.CreateNotaFiscalItemRequest:
     properties:
       codigo_produto:
@@ -44,15 +64,6 @@ definitions:
           type: string
         type: array
       message:
-        type: string
-    type: object
-  handlers.HealthResponse:
-    properties:
-      service:
-        type: string
-      status:
-        type: string
-      timestamp:
         type: string
     type: object
 host: localhost:8082
@@ -177,19 +188,19 @@ paths:
       - Notas Fiscais
   /health:
     get:
-      description: Retorna o estado de saude do microsservico de faturamento
+      description: Realiza a verificacao de saude da API de Faturamento e de suas
+        dependencias de infraestrutura.
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            allOf:
-            - $ref: '#/definitions/handlers.APIResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/handlers.HealthResponse'
-              type: object
+            $ref: '#/definitions/handlers.ComponentHealthResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/handlers.ComponentHealthResponse'
       summary: Health Check da API
       tags:
       - Health

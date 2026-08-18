@@ -29,8 +29,8 @@ public class RedisProdutoCacheService : IProdutoCacheService
                 saldo = saldo
             });
 
-            await db.StringSetAsync(key, payload, TimeSpan.FromDays(30));
-            _logger.LogInformation("Produto {Codigo} publicado no cache do Redis.", codigo);
+            await db.StringSetAsync(key, payload, TimeSpan.FromHours(24));
+            _logger.LogInformation("Produto {Codigo} publicado no cache do Redis com TTL de 24 horas.", codigo);
         }
         catch (Exception ex)
         {
