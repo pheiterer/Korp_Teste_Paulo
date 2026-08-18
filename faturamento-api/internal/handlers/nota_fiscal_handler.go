@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -107,6 +108,13 @@ func (h *NotaFiscalHandler) CreateNotaFiscalHandler(c *gin.Context) {
 		SendError(c, http.StatusInternalServerError, "DB_ERROR", "Erro ao salvar nota fiscal no banco de dados", err.Error())
 		return
 	}
+
+	slog.Info("Nota fiscal criada com sucesso",
+		slog.String("uuid", nota.UUID),
+		slog.Int64("numero_sequencial", nota.NumeroSequencial),
+		slog.String("status", nota.Status),
+		slog.Float64("valor_total", nota.ValorTotal),
+	)
 
 	SendSuccess(c, http.StatusCreated, nota)
 }

@@ -41,7 +41,7 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
 
         using (_logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = correlationId }))
         {
-            _logger.LogInformation("Recebido evento NotaFiscalEmitidaEvent para Nota Fiscal {NotaFiscalId}.", message.NotaFiscalId);
+            _logger.LogInformation("Recebido evento NotaFiscalEmitidaEvent para Nota Fiscal {NotaFiscalId} com CorrelationId {CorrelationId}.", message.NotaFiscalId, correlationId);
 
         // 1. Verificação de Idempotência
         if (await _idempotencyService.RequestExistsAsync(idempotencyKey, context.CancellationToken))
@@ -110,11 +110,11 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
                 DateTime.UtcNow
             ), context.CancellationToken);
 
-            _logger.LogInformation("Estoque debitado com sucesso para a Nota Fiscal {NotaFiscalId}.", message.NotaFiscalId);
+            _logger.LogInformation("Estoque debitado com sucesso para a Nota Fiscal {NotaFiscalId} com CorrelationId {CorrelationId}.", message.NotaFiscalId, correlationId);
         }
         catch (DomainException ex)
         {
-            _logger.LogError(ex, "Falha de regra de negócio ao debitar estoque para Nota Fiscal {NotaFiscalId}. Publicando evento de falha.", message.NotaFiscalId);
+            _logger.LogError(ex, "Falha de regra de negócio ao debitar estoque para Nota Fiscal {NotaFiscalId} com CorrelationId {CorrelationId}. Publicando evento de falha.", message.NotaFiscalId, correlationId);
 
             // Publica evento de falha para acionar a Saga Compensatória no Faturamento
             await context.Publish(new AbatimentoEstoqueFalhouEvent(

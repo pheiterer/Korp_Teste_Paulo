@@ -138,21 +138,31 @@
 ### Issue 9: Impressão e Mensageria (Faturamento - Go) - [✅ Concluído]
 - **Status:** ✅ Concluído (Máquina de Estados Assíncrona: Aberta ➔ EmProcessamento ➔ Fechada / Cancelada)
 - **Descrição:** Construir a lógica de transição de estados da Nota Fiscal, envio de eventos para o RabbitMQ, pré-validação no Redis e confirmação/cancelamento assíncrono.
-- **Stack:** Go, RabbitMQ (`amqp091-go`), Redis (`go-redis/v9`).
+- **Stack:** Go, RabbitMQ (`amqp091-go`), Redis (`go-redis/v9`), C# (.NET 10).
 - **Tarefas:**
   - [x] Criar os endpoints `POST /api/v1/notas-fiscais` e `GET /api/v1/notas-fiscais` para criação e listagem de Notas Fiscais com status inicial "Aberta".
-  - [x] Sincronizar produtos no Redis (`produto:codigo:{codigo}`) e pré-validar no Go rejeitando itens não cadastrados com HTTP `400 Bad Request`.
+  - [x] Sincronizar produtos no Redis (`produto:codigo:{codigo}`) com TTL sliding de 24h e pré-validar no Go rejeitando itens não cadastrados com HTTP `400 Bad Request`.
   - [x] Atualizar endpoint `POST /api/v1/notas-fiscais/:id/imprimir` para alterar status de "Aberta" ➔ "EmProcessamento" ao publicar no RabbitMQ.
+  - [x] Implementar trava distribuída Redlock e verificação de Idempotência (7 dias) no consumidor C# (`NotaFiscalEmitidaConsumer`).
   - [x] Implementar confirmação no C# (`NotaFiscalAbatidaEvent`) e consumidor em Go para alterar de "EmProcessamento" ➔ "Fechada" em caso de sucesso.
   - [x] Implementar consumidor de falha em Go (`AbatimentoEstoqueFalhouEvent`) para alterar de "EmProcessamento" ➔ "Cancelada" em caso de erro no estoque (Transação Compensatória / Saga).
 
-### Issue 9.1: Observabilidade, Correlation ID e Transação Compensatória (Faturamento - Go)
-- **Descrição:** Implementar monitoramento de saúde, rastreabilidade ponta a ponta e resiliência via Saga Pattern (Transação Compensatória) em Go.
-- **Stack:** Go (Golang), `log/slog`, RabbitMQ (`amqp091-go`), SQL Server.
+### Issue 9.1: Observabilidade, Correlation ID, Loki e Transação Compensatória (Faturamento - Go & Estoque - C#) - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Implementar monitoramento de saúde, rastreabilidade ponta a ponta via Correlation ID/UUID, agregador de logs Grafana Loki + Promtail, healthchecks nativos no Docker Compose e resiliência via Saga Pattern (Transação Compensatória).
+- **Stack:** Go (Golang), C# (.NET 10), `log/slog`, Serilog, RabbitMQ (`amqp091-go`), Redis, SQL Server, PostgreSQL, Prometheus, Grafana Loki, Promtail.
 - **Tarefas:**
-  - Criar rota `/health` em Go realizando `Ping()` no SQL Server e no RabbitMQ para monitoramento pelo Prometheus.
-  - Extrair o `X-Correlation-ID` do cabeçalho da requisição HTTP, incluir nos logs de `slog` e injetar nos metadados do evento publicado no RabbitMQ.
-  - Criar um consumer em Go para a fila de falhas de estoque (`AbatimentoEstoqueFalhouEvent`) para executar a transação compensatória (alterar status da nota fiscal no SQL Server de "Fechada" para "Cancelada/Erro").
+  - [x] Criar rotas `/health` em Go e C# realizando `Ping()` no SQL Server, PostgreSQL, Redis e RabbitMQ para monitoramento do sistema.
+  - [x] Configurar `healthcheck` nativo no `docker-compose.yml` para os containers `faturamento-api` e `estoque-api` reportarem status `(healthy)` ao Docker.
+  - [x] Implementar middleware de Correlation ID (`X-Correlation-ID`) para extração/geração automática, injeção nos logs de `slog` (Go) e Serilog (C#) e propagação nos eventos do RabbitMQ.
+  - [x] Exportar métricas Prometheus (`/metrics`) via `promhttp` no Go e `prometheus-net` no C# para coleta de dados de execução HTTP e runtime.
+  - [x] Corrigir raspagem do Prometheus apontando para as portas internas corretas dos containers (`estoque-api:8080` e `faturamento-api:8082`).
+  - [x] Integrar Grafana Loki (`loki:3100`) e Promtail (`promtail`) no Docker Compose para agregação centralizada de logs dos containers Docker.
+  - [x] Configurar provisionamento automático de fontes de dados no Grafana (`grafana/provisioning/datasources/` para Prometheus e Loki).
+  - [x] Registrar o `uuid` da Nota Fiscal em todas as etapas da máquina de estados para rastreamento completo de ciclo de vida (criação ➔ emissão ➔ débito ➔ fechamento) no Grafana Loki.
+  - [x] Padronizar Message Templates estruturados de logging no C# (`NotaFiscalEmitidaConsumer.cs`) para correlação de eventos com `{CorrelationId}` e `{NotaFiscalId}` no Loki.
+  - [x] Configurar política de expiração (TTL de 24 horas) para o cache de produtos no Redis (`RedisProdutoCacheService.cs`).
+  - [x] Criar consumidor em Go para a fila de falhas de estoque (`AbatimentoEstoqueFalhouEvent`) para executar a transação compensatória (alterar status da nota fiscal no SQL Server de "EmProcessamento" para "Cancelada").
 
 ---
 
