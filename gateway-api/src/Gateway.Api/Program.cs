@@ -25,6 +25,7 @@ builder.Services.AddMassTransit(x =>
 {
     x.AddConsumer<AbatimentoEstoqueFalhouConsumer>();
     x.AddConsumer<NotaFiscalAbatidaConsumer>();
+    x.AddConsumer<NotaFiscalEmitidaFaultConsumer>();
 
     x.UsingRabbitMq((context, cfg) =>
     {

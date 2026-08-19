@@ -198,6 +198,10 @@ func (h *NotaFiscalHandler) ImprimirNotaFiscalHandler(c *gin.Context) {
 
 	// 4. Publica o evento NotaFiscalEmitidaEvent no RabbitMQ
 	correlationID := c.GetHeader("X-Correlation-ID")
+	if correlationID == "" {
+		correlationID = nota.UUID
+	}
+
 	if h.rabbitMQ != nil {
 		if pubErr := h.rabbitMQ.PublishNotaFiscalEmitida(ctx, nota, correlationID); pubErr != nil {
 			SendError(c, http.StatusInternalServerError, "RABBITMQ_ERROR", "Falha ao enviar mensagem ao RabbitMQ", pubErr.Error())

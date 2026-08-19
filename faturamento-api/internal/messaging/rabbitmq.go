@@ -189,13 +189,20 @@ func (r *RabbitMQService) PublishNotaFiscalEmitida(ctx context.Context, nota *do
 		return fmt.Errorf("falha ao serializar mensagem JSON MassTransit: %w", err)
 	}
 
+	now := time.Now().UTC()
+	sentTimeStr := now.Format(time.RFC3339Nano)
+
 	// Publica a mensagem na Exchange e diretamente na Fila para garantia duplamente tratada
 	pub := amqp.Publishing{
 		ContentType:   "application/vnd.masstransit+json",
 		DeliveryMode:  amqp.Persistent,
 		MessageId:     messageID,
 		CorrelationId: correlationID,
-		Body:          body,
+		Timestamp:     now,
+		Headers: amqp.Table{
+			"SentTime": sentTimeStr,
+		},
+		Body: body,
 	}
 
 	// Tentativa 1: publicar na exchange do MassTransit

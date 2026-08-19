@@ -105,12 +105,8 @@
 }
 
 .code-cell {
-  color: var(--korp-navy);
+  color: var(--accent-code);
   font-weight: 700;
-}
-
-[data-theme="dark"] .code-cell {
-  color: #60a5fa;
 }
 
 .desc-cell {
