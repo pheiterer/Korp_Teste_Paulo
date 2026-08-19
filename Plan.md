@@ -216,15 +216,16 @@
   - [x] Implementar o `ErrorInterceptor` global para capturar respostas no padrão `ProblemDetails` / `ValidationProblemDetails` (HTTP 400 Bad Request e 500 Internal Server Error) vindas do YARP Gateway e exibir alertas amigáveis para o usuário na interface.
   - [x] Criar o `SignalRService` injetável para gerenciar a conexão WebSocket com o API Gateway (`http://localhost:8080/hubs/notificacoes`), garantindo reconexão automática e limpeza de subscrições no ciclo de vida (`ngOnInit`/`ngOnDestroy`).
 
-### Issue 13: Telas e Formulários Reativos (Produtos e Notas Fiscais)
+### Issue 13: Telas e Formulários Reativos (Produtos e Notas Fiscais) - [✅ Concluído]
+- **Status:** ✅ Concluído
 - **Descrição:** Desenvolver as interfaces de formulários reativos para cadastro e visualização em tempo real de Produtos e Notas Fiscais.
-- **Stack:** ReactiveFormsModule, FormBuilder, RxJS, Angular Material.
+- **Stack:** ReactiveFormsModule, FormBuilder, RxJS, SCSS Design System.
 - **Tarefas:**
-  - [ ] Criar o componente `ProdutoCadastroComponent` (inputs validados de Código, Descrição e Saldo Inicial).
-  - [ ] Criar o componente `ProdutoListComponent` para exibição reativa da tabela de produtos e saldos atualizados de estoque.
-  - [ ] Criar o componente `NotaFiscalCadastroComponent` com formulário reativo flexível (`FormArray`) para permitir múltiplos itens na mesma nota fiscal.
-  - [ ] Integrar autocomplete/seleção dinâmica de produtos cadastrados (`GET /api/produtos`) no formulário de notas fiscais.
-  - [ ] Criar o componente `NotaFiscalListComponent` para visualização das notas fiscais com badges de status (`Aberta`, `EmProcessamento`, `Fechada`, `Cancelada`).
+  - [x] Criar o componente `ProdutoCadastroComponent` (inputs validados de Código, Descrição e Saldo Inicial).
+  - [x] Criar o componente `ProdutoListComponent` para exibição reativa da tabela de produtos e saldos atualizados de estoque.
+  - [x] Criar o componente `NotaFiscalCadastroComponent` com formulário reativo flexível (`FormArray`) para permitir múltiplos itens na mesma nota fiscal.
+  - [x] Integrar autocomplete/seleção dinâmica de produtos cadastrados (`GET /api/produtos`) no formulário de notas fiscais.
+  - [x] Criar o componente `NotaFiscalListComponent` para visualização das notas fiscais com badges de status (`Aberta`, `EmProcessamento`, `Fechada`, `Cancelada`).
 
 ### Issue 14: Tela de Impressão, Transições de Estado (Saga) e Reatividade em Tempo Real (SignalR & RxJS)
 - **Descrição:** Implementar a ação de impressão/emissão de nota fiscal, controle de loading reativo, manipulação de streams com RxJS e consumo de eventos em tempo real via SignalR.
