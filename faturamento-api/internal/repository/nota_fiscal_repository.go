@@ -21,6 +21,7 @@ type NotaFiscalRepository interface {
 	FindByUUID(ctx context.Context, uuidStr string) (*domain.NotaFiscal, error)
 	FindAll(ctx context.Context) ([]domain.NotaFiscal, error)
 	UpdateStatus(ctx context.Context, id uint, status string) error
+	UpdateStatusWithMotivo(ctx context.Context, id uint, status string, motivo string) error
 	GetNextNumeroSequencial(ctx context.Context) (int64, error)
 }
 
@@ -103,11 +104,21 @@ func (r *gormNotaFiscalRepository) FindAll(ctx context.Context) ([]domain.NotaFi
 }
 
 func (r *gormNotaFiscalRepository) UpdateStatus(ctx context.Context, id uint, status string) error {
+	return r.UpdateStatusWithMotivo(ctx, id, status, "")
+}
+
+func (r *gormNotaFiscalRepository) UpdateStatusWithMotivo(ctx context.Context, id uint, status string, motivo string) error {
 	db, err := r.getDB()
 	if err != nil {
 		return err
 	}
-	result := db.WithContext(ctx).Model(&domain.NotaFiscal{}).Where("id = ?", id).Update("status", status)
+	updates := map[string]interface{}{
+		"status": status,
+	}
+	if motivo != "" {
+		updates["motivo_cancelamento"] = motivo
+	}
+	result := db.WithContext(ctx).Model(&domain.NotaFiscal{}).Where("id = ?", id).Updates(updates)
 	if result.Error != nil {
 		return result.Error
 	}

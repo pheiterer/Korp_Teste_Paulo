@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"faturamento-api/internal/cache"
 	"faturamento-api/internal/domain"
@@ -63,6 +64,7 @@ func (h *NotaFiscalHandler) CreateNotaFiscalHandler(c *gin.Context) {
 
 	// 1. Pre-validacao instantanea no Redis Cache
 	if h.redis != nil && h.redis.IsConnected(c.Request.Context()) {
+		var cacheErros []string
 		for _, itemReq := range req.Itens {
 			codigo := itemReq.CodigoProduto
 			if codigo == "" {
@@ -78,10 +80,13 @@ func (h *NotaFiscalHandler) CreateNotaFiscalHandler(c *gin.Context) {
 			if codigo != "" {
 				_, err := h.redis.GetProduto(c.Request.Context(), codigo)
 				if errors.Is(err, cache.ErrProdutoNaoEncontradoNoCache) {
-					SendError(c, http.StatusBadRequest, "PRODUTO_NAO_ENCONTRADO_NO_CACHE", "Produto '"+codigo+"' nao encontrado no cache de estoque (Redis)")
-					return
+					cacheErros = append(cacheErros, "Produto '"+codigo+"' nao encontrado no cache de estoque (Redis)")
 				}
 			}
+		}
+		if len(cacheErros) > 0 {
+			SendError(c, http.StatusBadRequest, "PRODUTO_NAO_ENCONTRADO_NO_CACHE", "Falha de validacao no cache: "+strings.Join(cacheErros, "; "))
+			return
 		}
 	}
 

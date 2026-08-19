@@ -22,6 +22,8 @@ export class NotaFiscalService {
       numeroSequencial: item.numeroSequencial ?? item.numero_sequencial,
       numero_sequencial: item.numero_sequencial ?? item.numeroSequencial,
       status: item.status,
+      motivoCancelamento: item.motivoCancelamento ?? item.motivo_cancelamento,
+      motivo_cancelamento: item.motivo_cancelamento ?? item.motivoCancelamento,
       valorTotal: Number(item.valorTotal ?? item.valor_total ?? 0),
       valor_total: Number(item.valor_total ?? item.valorTotal ?? 0),
       created_at: item.created_at,
@@ -34,7 +36,9 @@ export class NotaFiscalService {
         quantidade: Number(it.quantidade || 0),
         precoUnitario: Number(it.precoUnitario ?? it.preco_unitario ?? 0),
         preco_unitario: Number(it.preco_unitario ?? it.precoUnitario ?? 0),
-        subtotal: Number(it.subtotal ?? (Number(it.quantidade || 0) * Number(it.preco_unitario ?? it.precoUnitario ?? 0)))
+        subtotal: Number(it.subtotal ?? (Number(it.quantidade || 0) * Number(it.preco_unitario ?? it.precoUnitario ?? 0))),
+        motivoErro: it.motivoErro || it.motivo_erro || '',
+        motivo_erro: it.motivo_erro || it.motivoErro || ''
       })) : []
     };
   }
@@ -89,14 +93,19 @@ export class NotaFiscalService {
     );
   }
 
-  atualizarStatusNota(id: string | number, status: NotaFiscal['status']): void {
+  atualizarStatusNota(id: string | number, status: NotaFiscal['status'], motivo?: string): void {
     const targetStr = String(id || '').trim().toLowerCase();
     this.notasFiscais.update(list =>
       list.map(nota => {
         const notaIdStr = String(nota.id || '').trim().toLowerCase();
         const notaUuidStr = String(nota.uuid || '').trim().toLowerCase();
         if (notaIdStr === targetStr || (notaUuidStr && notaUuidStr === targetStr)) {
-          return { ...nota, status };
+          return {
+            ...nota,
+            status,
+            motivoCancelamento: motivo || nota.motivoCancelamento,
+            motivo_cancelamento: motivo || nota.motivo_cancelamento
+          };
         }
         return nota;
       })

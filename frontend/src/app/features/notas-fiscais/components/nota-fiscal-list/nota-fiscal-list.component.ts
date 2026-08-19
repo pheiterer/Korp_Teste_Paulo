@@ -105,7 +105,28 @@ import { NotaFiscal, NotaFiscalStatus } from '../../../../core/models/nota-fisca
                   <tr class="expanded-row">
                     <td colspan="5">
                       <div class="expanded-box">
-                        <h5>Itens da Nota Fiscal #{{ nota.id }}</h5>
+                        <div class="expanded-header">
+                          <h5>Itens da Nota Fiscal #{{ nota.id }}</h5>
+                          @if (nota.status === 'Cancelada' && (nota.motivoCancelamento || nota.motivo_cancelamento)) {
+                            @let parsed = parseMotivo(nota.motivoCancelamento || nota.motivo_cancelamento);
+                            <div class="cancel-reason-banner">
+                              <span class="banner-icon">⚠️</span>
+                              <div class="banner-text">
+                                <strong>Motivo do Cancelamento:</strong>
+                                @if (parsed.summary) {
+                                  <p class="banner-summary">{{ parsed.summary }}</p>
+                                }
+                                @if (parsed.items.length > 0) {
+                                  <ul class="reason-bullets">
+                                    @for (itemReason of parsed.items; track $index) {
+                                      <li>{{ itemReason }}</li>
+                                    }
+                                  </ul>
+                                }
+                              </div>
+                            </div>
+                          }
+                        </div>
                         <table class="nested-table">
                           <thead>
                             <tr>
@@ -118,7 +139,12 @@ import { NotaFiscal, NotaFiscalStatus } from '../../../../core/models/nota-fisca
                           <tbody>
                             @for (item of nota.itens; track $index) {
                               <tr>
-                                <td class="font-mono">{{ item.codigoProduto || item.codigo_produto }}</td>
+                                <td class="font-mono">
+                                  {{ item.codigoProduto || item.codigo_produto }}
+                                  @if (item.motivoErro || item.motivo_erro) {
+                                    <div class="item-error-msg">⚠️ {{ item.motivoErro || item.motivo_erro }}</div>
+                                  }
+                                </td>
                                 <td class="text-right font-mono">{{ item.quantidade }}</td>
                                 <td class="text-right font-mono">{{ (item.precoUnitario || item.preco_unitario || 0) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</td>
                                 <td class="text-right font-mono text-emerald">
@@ -187,7 +213,7 @@ export class NotaFiscalListComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(notificacao => {
         if (notificacao.notaFiscalId) {
-          this.notaFiscalService.atualizarStatusNota(notificacao.notaFiscalId, 'Cancelada');
+          this.notaFiscalService.atualizarStatusNota(notificacao.notaFiscalId, 'Cancelada', notificacao.reason);
           setTimeout(() => {
             this.notaFiscalService.getNotasFiscais().subscribe();
           }, 300);
@@ -252,5 +278,43 @@ export class NotaFiscalListComponent implements OnInit {
         this.toastService.error('Erro na Impressão', erroMsg);
       }
     });
+  }
+
+  parseMotivo(motivo: string | undefined): { summary: string; items: string[] } {
+    if (!motivo) return { summary: '', items: [] };
+
+    const str = motivo.trim();
+
+    // Se contiver múltiplos itens separados por " | "
+    if (str.includes(' | ')) {
+      const parts = str.split(' | ');
+      let summary = '';
+      const items: string[] = [];
+
+      const firstPart = parts[0];
+      if (firstPart.includes(': ')) {
+        const idx = firstPart.indexOf(': ');
+        summary = firstPart.substring(0, idx).trim();
+        items.push(firstPart.substring(idx + 2).trim());
+      } else {
+        items.push(firstPart.trim());
+      }
+
+      for (let i = 1; i < parts.length; i++) {
+        items.push(parts[i].trim());
+      }
+
+      return { summary, items };
+    }
+
+    // Se for item único com formato "Falha no estoque (...): Item ..."
+    if (str.includes(': Item ')) {
+      const idx = str.indexOf(': Item ');
+      const summary = str.substring(0, idx).trim();
+      const itemMsg = str.substring(idx + 2).trim();
+      return { summary, items: [itemMsg] };
+    }
+
+    return { summary: '', items: [str] };
   }
 }

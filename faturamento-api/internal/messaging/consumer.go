@@ -324,10 +324,10 @@ func (c *ConsumerService) updateStatusByIDOrUUID(ctx context.Context, idOrUUID s
 		}
 	}
 
-	if err := c.repo.UpdateStatus(ctx, nota.ID, status); err != nil {
+	if err := c.repo.UpdateStatusWithMotivo(ctx, nota.ID, status, motivo); err != nil {
 		slog.Error("Erro ao atualizar status da nota fiscal via evento", slog.String("id_or_uuid", idOrUUID), slog.String("status", status), slog.String("error", err.Error()))
 	} else {
-		slog.Info("Status da nota fiscal atualizado via mensageria assincrona", slog.String("id_or_uuid", idOrUUID), slog.String("status", status))
+		slog.Info("Status da nota fiscal atualizado via mensageria assincrona", slog.String("id_or_uuid", idOrUUID), slog.String("status", status), slog.String("motivo", motivo))
 	}
 
 	// Registra log estruturado especial EVENTO_SAGA_FINALIZADA para a tabela de Auditoria no Grafana

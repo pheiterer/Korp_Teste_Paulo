@@ -74,25 +74,44 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
                 locks.Add(lockObj);
             }
 
-            // 3. Processamento Atômico com Transação do Banco de Dados (Agrupado por produto)
-            await using var transaction = await _context.Database.BeginTransactionAsync(context.CancellationToken);
-
+            // 3. Validação e Processamento Atômico com Transação do Banco de Dados (Agrupado por produto)
             var itensAgrupados = message.Itens
                 .GroupBy(i => i.CodigoProduto.Trim().ToUpperInvariant())
                 .Select(g => new { CodigoKey = g.Key, OriginalCodigo = g.First().CodigoProduto, QuantidadeTotal = g.Sum(x => x.Quantidade) })
                 .ToList();
+
+            var erros = new List<string>();
+            var produtosParaDebitar = new List<(Estoque.Domain.Entities.Produto Produto, int QuantidadeTotal, string OriginalCodigo)>();
 
             foreach (var item in itensAgrupados)
             {
                 var produto = await _produtoRepository.GetByCodigoAsync(item.OriginalCodigo, context.CancellationToken);
                 if (produto == null)
                 {
-                    throw new DomainException($"Produto com código '{item.OriginalCodigo}' não foi encontrado no estoque.");
+                    erros.Add($"Item '{item.OriginalCodigo}': produto não encontrado no estoque.");
                 }
+                else if (produto.Saldo < item.QuantidadeTotal)
+                {
+                    erros.Add($"Item '{item.OriginalCodigo}': saldo insuficiente (solicitado: {item.QuantidadeTotal}, disponível: {produto.Saldo}).");
+                }
+                else
+                {
+                    produtosParaDebitar.Add((produto, item.QuantidadeTotal, item.OriginalCodigo));
+                }
+            }
 
-                // Debita a soma total das quantidades do produto
-                produto.DebitarSaldo(item.QuantidadeTotal);
-                _produtoRepository.Update(produto);
+            if (erros.Count > 0)
+            {
+                var motivoCompleto = $"Falha no estoque ({erros.Count} erro(s)): " + string.Join(" | ", erros);
+                throw new DomainException(motivoCompleto);
+            }
+
+            await using var transaction = await _context.Database.BeginTransactionAsync(context.CancellationToken);
+
+            foreach (var item in produtosParaDebitar)
+            {
+                item.Produto.DebitarSaldo(item.QuantidadeTotal);
+                _produtoRepository.Update(item.Produto);
             }
 
             await _produtoRepository.SaveChangesAsync(context.CancellationToken);
