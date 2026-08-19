@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-      - master
-      - 'feature/**'
-      - '*[0-9]*'
   pull_request:
     branches:
       - main
