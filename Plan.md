@@ -264,7 +264,7 @@
 
 ## Épico 7: Dashboards Automatizados (Grafana) e Testes de Carga (k6)
 
-### Issue 18: Dashboard Automatizado no Grafana (KPIs de Saúde, Latência e Tempo de Processamento) - [✅ Concluído]
+### Issue 15: Dashboard Automatizado no Grafana (KPIs de Saúde, Latência e Tempo de Processamento) - [✅ Concluído]
 - **Status:** ✅ Concluído
 - **Descrição:** Provisionar automaticamente no Grafana um Dashboard executivo/técnico pré-configurado contendo gráficos de tempo médio de resposta por requisição, vazão (RPS), taxa de erro (%), tempo de processamento de emissão/abatimento de Nota Fiscal e status de saúde dos microsserviços.
 - **Stack:** Grafana Provisioning, Prometheus, Loki, JSON Dashboard Schema.
@@ -281,6 +281,18 @@
   - [x] Configurar o fluxo completo de Dead Letter Queue (`_error`), Fault Consumer no Gateway e conversor resiliente JSON (`TolerantIntConverter`) para garantir que mensagens com falhas críticas ou erros de payload cancelem a nota automaticamente e notifiquem o frontend via SignalR sem deixar o processo pendente.
   - [x] Atualizar o `docker/compose.observability.yml` montando os volumes do provedor e definições JSON de dashboards para carregamento automático ao iniciar o Grafana.
 
+### Issue 16: Testes E2E Automatizados com Newman/Postman CLI e Detalhamento do Motivo de Cancelamento - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Desenvolver e integrar a suíte automatizada de testes E2E (End-to-End) cobrindo fluxos felizes, múltiplos itens por nota fiscal, transição de estado da Saga compensatória por falta de estoque e tratamento detalhado de erros por produto no backend (Go/SQL Server e C#/Postgres) e no frontend Angular.
+- **Stack:** Newman CLI, Postman Collection, Go (GORM), C# (.NET 10), Angular 19 (Signals & Standalone Components).
+- **Tarefas:**
+  - [x] Criar a coleção Postman máster `tests/e2e/e2e_postman_collection.json` com 4 cenários de teste automatizados (Healthcheck, Múltiplos Itens, Cancelamento por Saga Compensatória e Validação de Erros de Negócio/HTTP 400).
+  - [x] Criar o script de execução automatizado `scripts/run-e2e.sh` e o atalho `npm run test:e2e` utilizando o `newman` (35/35 asserções aprovadas com 100% de sucesso).
+  - [x] Implementar a varredura e acúmulo de erros de estoque para múltiplos itens no consumidor C# (`NotaFiscalEmitidaConsumer`) e no backend Go (`faturamento-api`).
+  - [x] Persistir a coluna `motivo_cancelamento` na tabela `notas_fiscais` do SQL Server via GORM AutoMigrate.
+  - [x] Criar componente visual no Angular (`nota-fiscal-list.component`) com banner de alerta estilizado em vermelho exibindo os motivos de cancelamento formatados com marcadores (`•`), fonte monospaçada e espaçamento limpo.
+  - [x] Atualizar a documentação Swagger e validar os logs estruturados no Grafana Loki.
+
 ### Issue 17: Testes de Carga, Estresse e Concorrência Distribuída com Grafana k6
 - **Status:** ⏳ Pendente
 - **Descrição:** Criar e executar scripts de teste de carga automatizados com **Grafana k6** para validar o desempenho dos microsserviços, a resiliência do API Gateway YARP, o controle de concorrência com Redlock e a idempotência do consumidor RabbitMQ, alimentando os gráficos do Grafana em tempo real.
@@ -294,9 +306,10 @@
 
 ---
 
-## Épico 6: Documentação e Entrega Final
+## Épico 8: Documentação e Entrega Final
 
-### Issue 15: Relatório Técnico Final e Vídeo (Atualizada)
+### Issue 18: Relatório Técnico Final e Vídeo (Atualizada)
+- **Status:** ⏳ Pendente
 - **Descrição:** Criar o documento Markdown respondendo explicitamente aos novos requisitos inseridos pelo uso do Go e gravar o vídeo de demonstração.
 - **Tarefas:**
   - Escrever o arquivo Markdown final respondendo explicitamente a todas as perguntas e requisitos:
