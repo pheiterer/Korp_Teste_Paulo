@@ -121,6 +121,15 @@
 					"name": "1.5 Validar Transição da Nota Fiscal 1 para FECHADA",
 					"event": [
 						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const start = Date.now(); while (Date.now() - start < 800) {}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
 							"listen": "test",
 							"script": {
 								"exec": [
@@ -280,6 +289,15 @@
 					"name": "2.5 Validar Status FECHADA na Nota Fiscal de Múltiplos Itens",
 					"event": [
 						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const start = Date.now(); while (Date.now() - start < 1200) {}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
 							"listen": "test",
 							"script": {
 								"exec": [
@@ -426,13 +444,23 @@
 					"name": "3.4 Validar Transição da Nota Fiscal para CANCELADA (AbatimentoEstoqueFalhou)",
 					"event": [
 						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const start = Date.now(); while (Date.now() - start < 800) {}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
 							"listen": "test",
 							"script": {
 								"exec": [
 									"pm.test('Status Code é 200 OK', function () { pm.response.to.have.status(200); });",
 									"var res = pm.response.json();",
 									"var nota = res.data || res;",
-									"pm.test('Nota Fiscal transicionou para CANCELADA via Saga Compensatória', function () { pm.expect(nota.status).to.eql('Cancelada'); });"
+									"pm.test('Nota Fiscal transicionou para CANCELADA via Saga Compensatória', function () { pm.expect(nota.status).to.eql('Cancelada'); });",
+									"pm.test('Motivo do cancelamento está persistido na resposta', function () { pm.expect(nota.motivo_cancelamento || nota.motivoCancelamento).to.exist; });"
 								],
 								"type": "text/javascript"
 							}
