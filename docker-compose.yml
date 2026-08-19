@@ -30,6 +30,26 @@ services:
     networks:
       - korp-network
 
+  frontend-web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend-web
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    depends_on:
+      gateway-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - korp-network
+
   estoque-api:
     build:
       context: ./estoque-api

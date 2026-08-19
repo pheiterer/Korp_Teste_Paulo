@@ -250,14 +250,15 @@
   - [x] Redesenhar o layout dos itens do formulário de Nota Fiscal em cards individuais com visualização completa dos produtos, espaçamento confortável e margens aprimoradas para botões e totalizadores.
   - [x] Formatar o rótulo de status de `"EmProcessamento"` para `"Em Processamento"` em todos os componentes visuais para aprimorar a experiência do usuário (UX).
 
-### Issue 14.1: Containerização Docker (Nginx), Configuração de Ambiente e Health Check (Frontend)
-- **Descrição:** Preparar a aplicação Angular para rodar em container Docker multi-stage via Nginx e integrar ao ecossistema `docker-compose.yml`.
-- **Stack:** Docker, Nginx Alpine, Docker Compose.
+### Issue 14.1: Containerização Docker (Nginx), Configuração de Ambiente e Health Check (Frontend) - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Preparar a aplicação cliente Angular 19+ para rodar em container Docker multi-stage com Nginx Alpine otimizado, suporte a SPA, WebSockets para SignalR, cabeçalhos de cache e integração total ao ecossistema `docker-compose.yml`.
+- **Stack:** Docker, Nginx Alpine, Angular CLI, Docker Compose.
 - **Tarefas:**
-  - [ ] Criar o arquivo `Dockerfile` multi-stage para a aplicação Angular (Stage 1: `node:20-alpine` para compilação; Stage 2: `nginx:alpine` para servir a SPA).
-  - [ ] Criar o arquivo de configuração `nginx.conf` pré-configurado para roteamento SPA (`try_files $uri $uri/ /index.html`).
-  - [ ] Configurar arquivos `environment.ts` e `environment.prod.ts` com o endpoint base do API Gateway (`http://localhost:8080`).
-  - [ ] Adicionar o serviço `frontend-angular` no `docker-compose.yml` exposto na porta `4200` integrado aos demais containers da solução.
+  - [x] Criar o arquivo `Dockerfile` multi-stage (Stage 1: `node:20-alpine` para compilação; Stage 2: `nginx:alpine` para servir a aplicação).
+  - [x] Criar a configuração `nginx.conf` pré-configurada para roteamento SPA (`try_files`), suporte a WebSockets/SignalR (`Upgrade`/`Connection`), compressão `gzip` e endpoint `/health`.
+  - [x] Configurar os arquivos `environment.ts` e `environment.prod.ts` com o endpoint base do YARP API Gateway (`http://localhost:8080`).
+  - [x] Adicionar o serviço `frontend-web` no `docker-compose.yml` exposto na porta `4200:80` com `healthcheck` nativo e dependência resiliente do `gateway-api`.
 
 ---
 
