@@ -1,5 +1,5 @@
 import { Injectable, signal, OnDestroy } from '@angular/core';
-import * as signalR from '@microsoft/signalr';
+import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
 import { Subject, Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ToastService } from './toast.service';
@@ -25,7 +25,7 @@ export interface AbatimentoEstoqueFalhouNotification {
   providedIn: 'root'
 })
 export class SignalRService implements OnDestroy {
-  private hubConnection?: signalR.HubConnection;
+  private hubConnection?: HubConnection;
   readonly connectionStatus = signal<SignalRConnectionStatus>('Disconnected');
 
   private readonly notaFiscalAbatidaSubject = new Subject<NotaFiscalAbatidaNotification>();
@@ -37,43 +37,48 @@ export class SignalRService implements OnDestroy {
   constructor(private toastService: ToastService) {}
 
   startConnection(): void {
-    if (this.hubConnection && this.hubConnection.state !== signalR.HubConnectionState.Disconnected) {
+    if (this.hubConnection && this.hubConnection.state !== HubConnectionState.Disconnected) {
       return;
     }
 
     const hubUrl = `${environment.apiGatewayUrl}/hubs/notificacoes`;
     this.connectionStatus.set('Connecting');
 
-    this.hubConnection = new signalR.HubConnectionBuilder()
-      .withUrl(hubUrl)
-      .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
-      .configureLogging(signalR.LogLevel.Information)
-      .build();
+    try {
+      this.hubConnection = new HubConnectionBuilder()
+        .withUrl(hubUrl)
+        .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+        .configureLogging(LogLevel.Information)
+        .build();
 
-    this.registerEventHandlers();
+      this.registerEventHandlers();
 
-    this.hubConnection.start()
-      .then(() => {
-        this.connectionStatus.set('Connected');
-        this.toastService.info('WebSocket Conectado', 'Conexão em tempo real estabelecida com o API Gateway.');
-      })
-      .catch(err => {
-        console.warn('Erro ao conectar no Hub SignalR:', err);
-        this.connectionStatus.set('Disconnected');
+      this.hubConnection.start()
+        .then(() => {
+          this.connectionStatus.set('Connected');
+          this.toastService.info('WebSocket Conectado', 'Conexão em tempo real estabelecida com o API Gateway.');
+        })
+        .catch(err => {
+          console.warn('Erro ao conectar no Hub SignalR:', err);
+          this.connectionStatus.set('Disconnected');
+        });
+
+      this.hubConnection.onreconnecting(() => {
+        this.connectionStatus.set('Reconnecting');
       });
 
-    this.hubConnection.onreconnecting(() => {
-      this.connectionStatus.set('Reconnecting');
-    });
+      this.hubConnection.onreconnected(() => {
+        this.connectionStatus.set('Connected');
+        this.toastService.success('WebSocket Reconectado', 'Conexão em tempo real restabelecida.');
+      });
 
-    this.hubConnection.onreconnected(() => {
-      this.connectionStatus.set('Connected');
-      this.toastService.success('WebSocket Reconectado', 'Conexão em tempo real restabelecida.');
-    });
-
-    this.hubConnection.onclose(() => {
+      this.hubConnection.onclose(() => {
+        this.connectionStatus.set('Disconnected');
+      });
+    } catch (e) {
+      console.warn('Falha ao inicializar o cliente SignalR:', e);
       this.connectionStatus.set('Disconnected');
-    });
+    }
   }
 
   private registerEventHandlers(): void {
