@@ -1,0 +1,12 @@
+{
+  "name": "korp-teste-paulo",
+  "version": "1.0.0",
+  "description": "Sistema de Emissão de Notas Fiscais e Gestão de Estoque - Microsserviços Poliglotas",
+  "scripts": {
+    "test:e2e": "./scripts/run-e2e.sh"
+  },
+  "devDependencies": {
+    "newman": "^6.2.2",
+    "newman-reporter-htmlextra": "^1.23.1"
+  }
+}
