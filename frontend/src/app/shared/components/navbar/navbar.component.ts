@@ -72,10 +72,10 @@ import { ThemeService } from '../../../core/services/theme.service';
             <span class="status-pulse"></span>
             <span class="status-text">
               @switch (signalRService.connectionStatus()) {
-                @case ('Connected') { SignalR: Conectado }
-                @case ('Connecting') { SignalR: Conectando... }
-                @case ('Reconnecting') { SignalR: Reconectando... }
-                @default { SignalR: Desconectado }
+                @case ('Connected') { Tempo Real }
+                @case ('Connecting') { Conectando... }
+                @case ('Reconnecting') { Reconectando... }
+                @default { Off-line }
               }
             </span>
           </div>

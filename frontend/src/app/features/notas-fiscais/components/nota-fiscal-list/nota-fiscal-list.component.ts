@@ -243,7 +243,7 @@ export class NotaFiscalListComponent implements OnInit {
         this.imprimindoId.set(null);
         this.toastService.info(
           'Impressão Solicitada',
-          `Nota Fiscal #${id} alterada para "Em Processamento" e publicada no RabbitMQ!`
+          `Solicitação de impressão da Nota Fiscal #${id} enviada com sucesso!`
         );
       },
       error: (err) => {
