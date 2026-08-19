@@ -72,7 +72,7 @@ import { NotaFiscal, NotaFiscalStatus } from '../../../../core/models/nota-fisca
                       @if (nota.status === 'EmProcessamento') {
                         <span class="mini-spinner"></span>
                       }
-                      {{ nota.status }}
+                      {{ formatStatus(nota.status) }}
                     </span>
                   </td>
                   <td class="text-center">
@@ -174,7 +174,9 @@ export class NotaFiscalListComponent implements OnInit {
         if (notificacao.notaFiscalId) {
           this.notaFiscalService.atualizarStatusNota(notificacao.notaFiscalId, 'Fechada');
           this.produtoService.getProdutos().subscribe();
-          this.notaFiscalService.getNotasFiscais().subscribe();
+          setTimeout(() => {
+            this.notaFiscalService.getNotasFiscais().subscribe();
+          }, 300);
         }
       });
 
@@ -184,7 +186,9 @@ export class NotaFiscalListComponent implements OnInit {
       .subscribe(notificacao => {
         if (notificacao.notaFiscalId) {
           this.notaFiscalService.atualizarStatusNota(notificacao.notaFiscalId, 'Cancelada');
-          this.notaFiscalService.getNotasFiscais().subscribe();
+          setTimeout(() => {
+            this.notaFiscalService.getNotasFiscais().subscribe();
+          }, 300);
         }
       });
   }
@@ -209,6 +213,16 @@ export class NotaFiscalListComponent implements OnInit {
     return this.expandedIds().has(id);
   }
 
+  formatStatus(status: NotaFiscalStatus | string): string {
+    switch (status) {
+      case 'EmProcessamento': return 'Em Processamento';
+      case 'Aberta': return 'Aberta';
+      case 'Fechada': return 'Fechada';
+      case 'Cancelada': return 'Cancelada';
+      default: return status || '—';
+    }
+  }
+
   getBadgeClass(status: NotaFiscalStatus): string {
     switch (status) {
       case 'Aberta': return 'badge badge-blue';
@@ -227,7 +241,7 @@ export class NotaFiscalListComponent implements OnInit {
         this.imprimindoId.set(null);
         this.toastService.info(
           'Impressão Solicitada',
-          `Nota Fiscal #${id} alterada para "EmProcessamento" e publicada no RabbitMQ!`
+          `Nota Fiscal #${id} alterada para "Em Processamento" e publicada no RabbitMQ!`
         );
       },
       error: (err) => {

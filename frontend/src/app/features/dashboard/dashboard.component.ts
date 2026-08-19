@@ -185,7 +185,7 @@ import { NotaFiscalService } from '../../core/services/nota-fiscal.service';
                       <td class="text-right font-mono">{{ (nota.valorTotal || nota.valor_total || 0) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</td>
                       <td class="text-center">
                         <span [ngClass]="getBadgeClassNota(nota.status)">
-                          {{ nota.status }}
+                          {{ formatStatus(nota.status) }}
                         </span>
                       </td>
                       <td class="text-center font-mono">{{ nota.itens.length || 0 }}</td>
@@ -242,15 +242,35 @@ export class DashboardComponent implements OnInit {
   private inscreverEventosSignalR(): void {
     this.signalRService.notaFiscalAbatida$
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        this.carregarDados();
+      .subscribe(notificacao => {
+        if (notificacao?.notaFiscalId) {
+          this.notaFiscalService.atualizarStatusNota(notificacao.notaFiscalId, 'Fechada');
+        }
+        setTimeout(() => {
+          this.carregarDados();
+        }, 300);
       });
 
     this.signalRService.abatimentoEstoqueFalhou$
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        this.carregarDados();
+      .subscribe(notificacao => {
+        if (notificacao?.notaFiscalId) {
+          this.notaFiscalService.atualizarStatusNota(notificacao.notaFiscalId, 'Cancelada');
+        }
+        setTimeout(() => {
+          this.carregarDados();
+        }, 300);
       });
+  }
+
+  formatStatus(status: string): string {
+    switch (status) {
+      case 'EmProcessamento': return 'Em Processamento';
+      case 'Aberta': return 'Aberta';
+      case 'Fechada': return 'Fechada';
+      case 'Cancelada': return 'Cancelada';
+      default: return status || '—';
+    }
   }
 
   getBadgeClassNota(status: string): string {

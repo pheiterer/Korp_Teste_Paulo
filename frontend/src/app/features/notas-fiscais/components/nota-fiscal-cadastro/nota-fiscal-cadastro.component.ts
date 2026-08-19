@@ -34,13 +34,36 @@ import { Produto } from '../../../../core/models/produto.model';
 
         <div formArrayName="itens" class="itens-list">
           @for (item of itensControls; track $index; let i = $index) {
-            <div [formGroup]="item" class="item-row">
-              <!-- Seletor de Produto -->
-              <div class="form-group flex-2">
-                <label class="form-label-sm">Produto</label>
+            <div [formGroup]="item" class="item-card">
+              <!-- Item Card Header -->
+              <div class="item-card-header">
+                <div class="item-badge">
+                  <span class="item-num">Item #{{ i + 1 }}</span>
+                </div>
+                <div class="item-header-actions">
+                  <div class="item-subtotal-tag">
+                    <span class="subtotal-label">Subtotal:</span>
+                    <span class="subtotal-val font-mono">{{ calcularSubtotalItem(i) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+                  </div>
+                  <button
+                    type="button"
+                    (click)="removerItem(i)"
+                    class="btn-remove-item"
+                    [disabled]="itensControls.length <= 1"
+                    title="Remover este item"
+                    aria-label="Remover item"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Seletor de Produto (Largura Total) -->
+              <div class="form-group product-field">
+                <label class="form-label-sm">Produto <span class="required">*</span></label>
                 <select
                   formControlName="codigoProduto"
-                  class="form-control"
+                  class="form-control select-product"
                   [class.invalid]="isItemFieldInvalid(i, 'codigoProduto')"
                   (change)="onProductChange(i, $event)"
                 >
@@ -48,8 +71,14 @@ import { Produto } from '../../../../core/models/produto.model';
                     <option value="" disabled>Nenhum produto cadastrado...</option>
                   }
                   @for (prod of produtos(); track prod.codigo) {
-                    <option [value]="prod.codigo">
+                    <option
+                      [value]="prod.codigo"
+                      [disabled]="isProductSelectedInAnotherItem(prod.codigo, i)"
+                    >
                       {{ prod.codigo }} - {{ prod.descricao }} (Saldo: {{ prod.saldo }})
+                      @if (isProductSelectedInAnotherItem(prod.codigo, i)) {
+                        (Já selecionado)
+                      }
                     </option>
                   }
                 </select>
@@ -58,57 +87,39 @@ import { Produto } from '../../../../core/models/produto.model';
                 }
               </div>
 
-              <!-- Quantidade -->
-              <div class="form-group flex-1">
-                <label class="form-label-sm">Qtd</label>
-                <input
-                  type="number"
-                  formControlName="quantidade"
-                  min="1"
-                  placeholder="1"
-                  class="form-control text-right"
-                  [class.invalid]="isItemFieldInvalid(i, 'quantidade')"
-                />
-                @if (isItemFieldInvalid(i, 'quantidade')) {
-                  <span class="error-msg">Min 1.</span>
-                }
-              </div>
+              <!-- Quantidade e Preço Unitário -->
+              <div class="item-card-row">
+                <div class="form-group flex-1">
+                  <label class="form-label-sm">Quantidade <span class="required">*</span></label>
+                  <input
+                    type="number"
+                    formControlName="quantidade"
+                    min="1"
+                    placeholder="1"
+                    class="form-control text-right"
+                    [class.invalid]="isItemFieldInvalid(i, 'quantidade')"
+                  />
+                  @if (isItemFieldInvalid(i, 'quantidade')) {
+                    <span class="error-msg">Mínimo 1 un.</span>
+                  }
+                </div>
 
-              <!-- Preço Unitário -->
-              <div class="form-group flex-1">
-                <label class="form-label-sm">Preço R$</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  formControlName="precoUnitario"
-                  min="0.01"
-                  placeholder="0.00"
-                  class="form-control text-right"
-                  [class.invalid]="isItemFieldInvalid(i, 'precoUnitario')"
-                />
-                @if (isItemFieldInvalid(i, 'precoUnitario')) {
-                  <span class="error-msg">Valor > 0.</span>
-                }
+                <div class="form-group flex-1">
+                  <label class="form-label-sm">Preço Unitário (R$) <span class="required">*</span></label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    formControlName="precoUnitario"
+                    min="0.01"
+                    placeholder="0.00"
+                    class="form-control text-right"
+                    [class.invalid]="isItemFieldInvalid(i, 'precoUnitario')"
+                  />
+                  @if (isItemFieldInvalid(i, 'precoUnitario')) {
+                    <span class="error-msg">Valor > R$ 0,00</span>
+                  }
+                </div>
               </div>
-
-              <!-- Subtotal do Item -->
-              <div class="form-group flex-1 item-subtotal">
-                <span class="subtotal-label">Subtotal</span>
-                <span class="subtotal-val font-mono">
-                  {{ calcularSubtotalItem(i) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-                </span>
-              </div>
-
-              <!-- Botão Remover -->
-              <button
-                type="button"
-                (click)="removerItem(i)"
-                class="btn-remove"
-                [disabled]="itensControls.length <= 1"
-                aria-label="Remover item"
-              >
-                &times;
-              </button>
             </div>
           }
         </div>
@@ -193,10 +204,23 @@ export class NotaFiscalCadastroComponent implements OnInit {
     }
   }
 
+  isProductSelectedInAnotherItem(codigo: string, currentIndex: number): boolean {
+    if (!codigo) return false;
+    const targetCode = String(codigo).trim().toUpperCase();
+    return this.itensControls.some((ctrl, idx) => {
+      if (idx === currentIndex) return false;
+      const currentVal = String(ctrl.get('codigoProduto')?.value || '').trim().toUpperCase();
+      return currentVal === targetCode;
+    });
+  }
+
   adicionarItem(codigo?: string): void {
-    const defaultCodigo = (codigo !== undefined && codigo !== '')
-      ? codigo
-      : (this.produtos().length > 0 ? this.produtos()[0].codigo : '');
+    let defaultCodigo = codigo;
+    if (!defaultCodigo || defaultCodigo === '') {
+      const existingCodes = this.itensControls.map(c => String(c.get('codigoProduto')?.value || '').trim().toUpperCase());
+      const availableProd = this.produtos().find(p => !existingCodes.includes(String(p.codigo).trim().toUpperCase()));
+      defaultCodigo = availableProd ? availableProd.codigo : (this.produtos().length > 0 ? this.produtos()[0].codigo : '');
+    }
 
     const itemGroup = this.fb.group({
       codigoProduto: [defaultCodigo, Validators.required],
@@ -230,11 +254,20 @@ export class NotaFiscalCadastroComponent implements OnInit {
     if (this.form.invalid || this.itensControls.length === 0) {
       this.form.markAllAsTouched();
       const invalidFields: string[] = [];
+      const seenCodes = new Set<string>();
+
       this.itensControls.forEach((ctrl, idx) => {
-        const cod = ctrl.get('codigoProduto')?.value;
-        if (!cod || String(cod).trim() === '') {
+        const cod = String(ctrl.get('codigoProduto')?.value || '').trim();
+        if (!cod) {
           invalidFields.push(`Item ${idx + 1}: selecione um produto`);
+        } else {
+          const upperCod = cod.toUpperCase();
+          if (seenCodes.has(upperCod)) {
+            invalidFields.push(`Item ${idx + 1}: produto duplicado na mesma nota`);
+          }
+          seenCodes.add(upperCod);
         }
+
         if ((Number(ctrl.get('quantidade')?.value) || 0) < 1) {
           invalidFields.push(`Item ${idx + 1}: quantidade mínima é 1`);
         }
@@ -244,6 +277,14 @@ export class NotaFiscalCadastroComponent implements OnInit {
       });
       const errorMsg = invalidFields.length > 0 ? invalidFields.join('\n') : 'Preencha todos os campos obrigatórios.';
       this.toastService.warning('Formulário Inválido', errorMsg);
+      return;
+    }
+
+    // Double check duplicate items
+    const codes = this.itensControls.map(c => String(c.get('codigoProduto')?.value || '').trim().toUpperCase());
+    const uniqueCodes = new Set(codes);
+    if (uniqueCodes.size !== codes.length) {
+      this.toastService.warning('Produtos Duplicados', 'Não é permitido incluir o mesmo produto mais de uma vez na mesma nota fiscal.');
       return;
     }
 

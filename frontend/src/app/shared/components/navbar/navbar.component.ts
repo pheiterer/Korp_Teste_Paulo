@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { SignalRService } from '../../../core/services/signalr.service';
+import { ThemeService } from '../../../core/services/theme.service';
 
 @Component({
   selector: 'app-navbar',
@@ -20,7 +21,7 @@ import { SignalRService } from '../../../core/services/signalr.service';
             </svg>
           </div>
           <div class="brand-text">
-            <span class="brand-title">Korp<span class="brand-accent">Fiscal</span></span>
+            <span class="brand-title">Korp<span class="brand-accent">ERP</span></span>
             <span class="brand-subtitle">Gestão de Estoque & Faturamento</span>
           </div>
         </a>
@@ -41,8 +42,32 @@ import { SignalRService } from '../../../core/services/signalr.service';
           </a>
         </nav>
 
-        <!-- Right Side: Status WebSocket SignalR -->
+        <!-- Right Side: Theme Switcher & Status WebSocket SignalR -->
         <div class="navbar-actions">
+          <!-- Theme Toggle Button -->
+          <button
+            type="button"
+            class="theme-toggle-btn"
+            (click)="themeService.toggleTheme()"
+            [title]="themeService.currentTheme() === 'light' ? 'Alternar para Modo Escuro' : 'Alternar para Modo Claro'"
+            [attr.aria-label]="themeService.currentTheme() === 'light' ? 'Modo Escuro' : 'Modo Claro'"
+          >
+            @if (themeService.currentTheme() === 'light') {
+              <!-- Moon Icon for switching to dark -->
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon moon-icon">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+              </svg>
+            } @else {
+              <!-- Sun Icon for switching to light -->
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon sun-icon">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+              </svg>
+            }
+            <span class="theme-label desktop-only">{{ themeService.currentTheme() === 'light' ? 'Escuro' : 'Claro' }}</span>
+          </button>
+
+          <!-- SignalR Connection Badge -->
           <div class="signalr-badge" [ngClass]="'status-' + signalRService.connectionStatus().toLowerCase()" (click)="reconnectSignalR()">
             <span class="status-pulse"></span>
             <span class="status-text">
@@ -88,6 +113,7 @@ import { SignalRService } from '../../../core/services/signalr.service';
 })
 export class NavbarComponent implements OnInit {
   readonly signalRService = inject(SignalRService);
+  readonly themeService = inject(ThemeService);
   mobileMenuOpen = false;
 
   ngOnInit(): void {

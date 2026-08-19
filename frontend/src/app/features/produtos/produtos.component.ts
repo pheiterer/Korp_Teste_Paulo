@@ -36,13 +36,13 @@ import { ProdutoService } from '../../core/services/produto.service';
       .page-title {
         font-size: 1.75rem;
         font-weight: 800;
-        color: #ffffff;
+        color: var(--text-main);
         letter-spacing: -0.02em;
       }
 
       .page-subtitle {
         font-size: 0.9375rem;
-        color: #94a3b8;
+        color: var(--text-muted);
         margin-top: 0.25rem;
       }
     }
