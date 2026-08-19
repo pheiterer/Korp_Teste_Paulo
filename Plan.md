@@ -262,31 +262,24 @@
 
 ---
 
-## Épico 7: Infraestrutura Avançada, Observabilidade de Logs e Testes de Carga (k6)
+## Épico 7: Dashboards Automatizados (Grafana) e Testes de Carga (k6)
 
-### Issue 16: Agregação Centralizada de Logs com Grafana Loki e Promtail - [✅ Concluído]
+### Issue 18: Dashboard Automatizado no Grafana (KPIs de Saúde, Latência e Tempo de Processamento) - [✅ Concluído]
 - **Status:** ✅ Concluído
-- **Descrição:** Configurar a coleta centralizada de logs de todos os containers da solução (Estoque C#, Faturamento Go, Gateway YARP, Frontend Nginx, Redis, RabbitMQ e Bancos) usando Promtail e Grafana Loki.
-- **Stack:** Grafana Loki, Promtail, Docker Compose, LogQL.
-- **Tarefas:**
-  - [x] Configurar os serviços `loki` e `promtail` no `docker-compose.yml`.
-  - [x] Mapear o `/var/run/docker.sock` no Promtail com relabeling de labels Docker (`container`).
-  - [x] Configurar provisionamento automático da fonte de dados Loki no Grafana (`grafana/provisioning/datasources/loki.yml`).
-  - [x] Padronizar o rastreamento via `X-Correlation-ID` e `NotaFiscalId` nos logs estruturados do Serilog (C#) e `slog` (Go) para consultas LogQL no Grafana Explore.
-
-### Issue 18: Dashboard Automatizado no Grafana (KPIs de Saúde, Latência e Tempo de Processamento)
-- **Status:** ⏳ Em Andamento
 - **Descrição:** Provisionar automaticamente no Grafana um Dashboard executivo/técnico pré-configurado contendo gráficos de tempo médio de resposta por requisição, vazão (RPS), taxa de erro (%), tempo de processamento de emissão/abatimento de Nota Fiscal e status de saúde dos microsserviços.
 - **Stack:** Grafana Provisioning, Prometheus, Loki, JSON Dashboard Schema.
 - **Tarefas:**
-  - [ ] Criar o provedor de dashboards `grafana/provisioning/dashboards/dashboards.yml`.
-  - [ ] Criar o arquivo JSON de dashboard `grafana/dashboards/kpi-health-dashboard.json` com painéis de:
+  - [x] Criar o provedor de dashboards `grafana/provisioning/dashboards/dashboards.yml`.
+  - [x] Criar o arquivo JSON de dashboard `grafana/dashboards/kpi-health-dashboard.json` com painéis de:
     - Média de tempo de resposta por requisição (HTTP Latency - p50/p95/p99).
     - Vazão de requisições por segundo (RPS) por endpoint e microsserviço.
     - Taxa de Erros HTTP (4xx / 5xx).
     - Tempo total de processamento da Nota Fiscal (Ciclo de Vida da máquina de estados e mensageria).
     - Status de disponibilidade dos containers (`up`).
-  - [ ] Atualizar o `docker-compose.yml` montando os volumes do provedor e definições JSON de dashboards para carregamento automático ao iniciar o Grafana.
+  - [x] Criar middleware de métricas no Faturamento em Go (`metrics.go`) para coletar `http_requests_received_total` e `http_request_duration_seconds` no mesmo padrão do C#.
+  - [x] Implementar Tabela de Auditoria de Correlation ID com Data Links direto para o Explore no Grafana.
+  - [x] Configurar o fluxo completo de Dead Letter Queue (`_error`), Fault Consumer no Gateway e conversor resiliente JSON (`TolerantIntConverter`) para garantir que mensagens com falhas críticas ou erros de payload cancelem a nota automaticamente e notifiquem o frontend via SignalR sem deixar o processo pendente.
+  - [x] Atualizar o `docker/compose.observability.yml` montando os volumes do provedor e definições JSON de dashboards para carregamento automático ao iniciar o Grafana.
 
 ### Issue 17: Testes de Carga, Estresse e Concorrência Distribuída com Grafana k6
 - **Status:** ⏳ Pendente

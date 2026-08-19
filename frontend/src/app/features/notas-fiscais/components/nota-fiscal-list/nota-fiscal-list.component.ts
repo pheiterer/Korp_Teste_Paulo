@@ -59,10 +59,12 @@ import { NotaFiscal, NotaFiscalStatus } from '../../../../core/models/nota-fisca
               @for (nota of notasFiltradas; track nota.id) {
                 <tr class="table-row">
                   <td class="code-cell font-mono">
-                    #{{ nota.id }}
-                    @if (nota.uuid) {
-                      <span class="uuid-sub font-mono">{{ nota.uuid | slice:0:8 }}...</span>
-                    }
+                    <div class="code-box">
+                      <span class="nota-seq">#{{ nota.id }}</span>
+                      @if (nota.uuid) {
+                        <span class="uuid-sub font-mono">{{ nota.uuid | slice:0:8 }}...</span>
+                      }
+                    </div>
                   </td>
                   <td class="text-right font-mono valor-cell">
                     {{ nota.valorTotal | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
@@ -241,7 +243,7 @@ export class NotaFiscalListComponent implements OnInit {
         this.imprimindoId.set(null);
         this.toastService.info(
           'Impressão Solicitada',
-          `Nota Fiscal #${id} alterada para "Em Processamento" e publicada no RabbitMQ!`
+          `Solicitação de impressão da Nota Fiscal #${id} enviada com sucesso!`
         );
       },
       error: (err) => {
