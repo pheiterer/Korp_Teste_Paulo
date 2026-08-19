@@ -8,43 +8,66 @@ Este repositório contém a solução completa para o desafio técnico da **Korp
 
 O sistema foi desenhado seguindo os princípios de **Clean Architecture**, **Domain-Driven Design (DDD)**, **Event-Driven Architecture (EDA)**, **API Gateway Pattern**, **Saga Pattern (Transação Compensatória)** e **Observabilidade Distribuída**:
 
-```
-                                  ┌───────────────────────────┐
-                                  │   Frontend Angular (Web)  │
-                                  │   Porta 4200 (Nginx SPA)  │
-                                  └─────────────┬─────────────┘
-                                                │ (HTTP / WebSocket)
-                                                ▼
-                                  ┌───────────────────────────┐
-                                  │  YARP API Gateway (C#)    │
-                                  │  - SignalR Hub (WS)       │
-                                  │  - Correlation ID         │
-                                  │  Porta 8080               │
-                                  └──────┬─────────────┬──────┘
-                                         │             │
-                                         ▼             ▼
-┌──────────────────────────────────┐         ┌──────────────────────────────────┐
-│  Microsserviço de Estoque (C#)   │         │  Microsserviço Faturamento (Go)  │
-│  - Clean Architecture & DDD      │         │  - Gin Web Framework & GORM      │
-│  - PostgreSQL 16 & Redis Cache   │         │  - SQL Server 2022 & Redis Cache │
-│  - Redlock & Idempotência        │         │  - Fail-Fast Cache Pre-Validation│
-│  Porta 8081 (Swagger)            │         │  Porta 8082 (Swagger)            │
-└────────────────┬─────────────────┘         └────────────────┬─────────────────┘
-                 │                                            │
-                 └───────────────────┬────────────────────────┘
-                                     │ (Eventos Assíncronos RabbitMQ / AMQP)
-                                     ▼
-                          ┌───────────────────────────┐
-                          │   RabbitMQ (Mensageria)   │
-                          │   AMQP 5672 | Painel 15672 │
-                          └─────────────┬─────────────┘
-                                        │
-                                        ▼
-                          ┌───────────────────────────┐
-                          │  Prometheus + Grafana     │
-                          │  + Loki + Promtail        │
-                          │  Porta 3000 / Porta 9090  │
-                          └───────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Client["🖥️ Camada de Apresentação"]
+        Angular["Frontend Angular 19+ (Nginx SPA)<br/><b>Porta 4200</b><br/>• Standalone Components & Signals<br/>• Reatividade RxJS & Lucide Icons<br/>• Tema Claro / Escuro (Design System Korp)"]
+    end
+
+    subgraph GatewayLayer["🌐 Gateway & Comunicação em Tempo Real"]
+        YARP["YARP API Gateway (C# .NET 10)<br/><b>Porta 8080</b><br/>• Roteamento Reverso Dinâmico<br/>• Propagação X-Correlation-ID<br/>• SignalR WebSocket Hub (/hubs/notificacoes)"]
+    end
+
+    subgraph Services["⚙️ Microsserviços de Negócio"]
+        Estoque["Microsserviço de Estoque (C# .NET 10)<br/><b>Porta 8081 (Swagger)</b><br/>• Clean Architecture & DDD<br/>• MassTransit Consumer & Publisher<br/>• Redlock Distributed Lock<br/>• Idempotência Redis (TTL 7 dias)"]
+        Faturamento["Microsserviço de Faturamento (Go 1.24)<br/><b>Porta 8082 (Swagger)</b><br/>• Gin Web Framework & GORM<br/>• RabbitMQ AMQP Publisher/Consumer<br/>• Fail-Fast Redis Pre-Validation<br/>• Transação Compensatória (Saga Pattern)"]
+    end
+
+    subgraph Persistence["💾 Persistência & Cache"]
+        Postgres[("PostgreSQL 16<br/><b>Porta 5432</b><br/><i>Banco do Estoque</i>")]
+        SQLServer[("SQL Server 2022<br/><b>Porta 1433</b><br/><i>Banco do Faturamento</i>")]
+        Redis[("Redis 7<br/><b>Porta 6379</b><br/><i>Cache de Produtos & Trava Redlock</i>")]
+    end
+
+    subgraph Messaging["📨 Mensageria Assíncrona & Resiliência"]
+        RabbitMQ{{"RabbitMQ Broker (AMQP 5672 | Painel 15672)<br/>• Exchange: nota-fiscal-emitida<br/>• Exchange: nota-fiscal-abatida<br/>• Exchange: abatimento-estoque-falhou"}}
+    end
+
+    subgraph Observability["📊 Stack de Observabilidade Centralizada"]
+        Prometheus["Prometheus (Porta 9090)<br/><i>Métricas de Runtime & Tráfego</i>"]
+        Promtail["Promtail<br/><i>Coletor Docker Socket</i>"]
+        Loki["Grafana Loki (Porta 3100)<br/><i>Agregador Central de Logs</i>"]
+        Grafana["Grafana Dashboard (Porta 3000)<br/><i>Visualização de Métricas & Logs</i>"]
+    end
+
+    %% Fluxo de Requisição Cliente & Gateway
+    Angular <-->|"HTTP REST / WebSockets (SignalR)"| YARP
+    YARP -->|"HTTP /api/produtos"| Estoque
+    YARP -->|"HTTP /api/v1/notas-fiscais"| Faturamento
+
+    %% Banco de Dados e Cache
+    Estoque <-->|"EF Core 10"| Postgres
+    Estoque <-->|"Distributed Lock & Idempotency"| Redis
+
+    Faturamento <-->|"GORM"| SQLServer
+    Faturamento <-->|"Fail-Fast Cache Check"| Redis
+
+    %% Ciclo de Eventos da Máquina de Estados (Saga)
+    Faturamento -->|"1. Emite Nota / Publica NotaFiscalEmitida"| RabbitMQ
+    RabbitMQ -->|"2. Consome Evento de Emissão"| Estoque
+    Estoque -->|"3a. Sucesso: Publica NotaFiscalAbatida"| RabbitMQ
+    Estoque -->|"3b. Falha: Publica AbatimentoEstoqueFalhou"| RabbitMQ
+    RabbitMQ -->|"4. Saga Compensatória / Atualiza Status Fechada ou Cancelada"| Faturamento
+    RabbitMQ -->|"5. Consome Evento e repassa via Push"| YARP
+    YARP -.->|"Notificação Push em Tempo Real"| Angular
+
+    %% Observabilidade
+    Estoque -.->|"Métricas /metrics"| Prometheus
+    Faturamento -.->|"Métricas /metrics"| Prometheus
+    YARP -.->|"Métricas /metrics"| Prometheus
+    Promtail -.->|"Logs dos 12 Containers"| Loki
+    Loki --> Grafana
+    Prometheus --> Grafana
 ```
 
 ---
@@ -301,5 +324,5 @@ Arquivo na raiz: [`Korp_Teste_Paulo.postman_collection.json`](file:///home/pheit
 - [x] **Épico 3:** Microsserviço de Faturamento & Observabilidade (Go, GORM, RabbitMQ, Redis Fail-Fast, Prometheus, Grafana Loki, Saga Pattern)
 - [x] **Épico 4:** API Gateway YARP, SignalR WebSockets & Correlation ID Middleware
 - [x] **Épico 5:** Frontend Angular 19+ (Standalone Components, RxJS, SignalR Client, Design System KORP, Dark Mode)
-- [ ] **Épico 7:** Infraestrutura Avançada, Observabilidade e Testes de Carga (Grafana Loki, Dashboards de KPIs Automatizados & Grafana k6)
+- [ ] **Épico 7:** Dashboards Automatizados de KPIs (Grafana) e Testes de Carga (k6)
 - [ ] **Épico 6:** Documentação Final e Gravação do Vídeo de Demonstração

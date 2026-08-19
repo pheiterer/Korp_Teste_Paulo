@@ -262,17 +262,7 @@
 
 ---
 
-## Épico 7: Infraestrutura Avançada, Observabilidade de Logs e Testes de Carga (k6)
-
-### Issue 16: Agregação Centralizada de Logs com Grafana Loki e Promtail - [✅ Concluído]
-- **Status:** ✅ Concluído
-- **Descrição:** Configurar a coleta centralizada de logs de todos os containers da solução (Estoque C#, Faturamento Go, Gateway YARP, Frontend Nginx, Redis, RabbitMQ e Bancos) usando Promtail e Grafana Loki.
-- **Stack:** Grafana Loki, Promtail, Docker Compose, LogQL.
-- **Tarefas:**
-  - [x] Configurar os serviços `loki` e `promtail` no `docker-compose.yml`.
-  - [x] Mapear o `/var/run/docker.sock` no Promtail com relabeling de labels Docker (`container`).
-  - [x] Configurar provisionamento automático da fonte de dados Loki no Grafana (`grafana/provisioning/datasources/loki.yml`).
-  - [x] Padronizar o rastreamento via `X-Correlation-ID` e `NotaFiscalId` nos logs estruturados do Serilog (C#) e `slog` (Go) para consultas LogQL no Grafana Explore.
+## Épico 7: Dashboards Automatizados (Grafana) e Testes de Carga (k6)
 
 ### Issue 18: Dashboard Automatizado no Grafana (KPIs de Saúde, Latência e Tempo de Processamento)
 - **Status:** ⏳ Em Andamento
