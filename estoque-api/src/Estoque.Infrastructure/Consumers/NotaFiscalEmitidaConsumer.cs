@@ -112,9 +112,9 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
 
             _logger.LogInformation("Estoque debitado com sucesso para a Nota Fiscal {NotaFiscalId} com CorrelationId {CorrelationId}.", message.NotaFiscalId, correlationId);
         }
-        catch (DomainException ex)
+        catch (Exception ex)
         {
-            _logger.LogError(ex, "Falha de regra de negócio ao debitar estoque para Nota Fiscal {NotaFiscalId} com CorrelationId {CorrelationId}. Publicando evento de falha.", message.NotaFiscalId, correlationId);
+            _logger.LogError(ex, "Falha ao debitar estoque para Nota Fiscal {NotaFiscalId} com CorrelationId {CorrelationId}. Publicando evento de falha.", message.NotaFiscalId, correlationId);
 
             // Publica evento de falha para acionar a Saga Compensatória no Faturamento
             await context.Publish(new AbatimentoEstoqueFalhouEvent(

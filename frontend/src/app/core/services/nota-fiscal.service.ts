@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, map, tap, catchError, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { NotaFiscal, CreateNotaFiscalRequest } from '../models/nota-fiscal.model';
 
@@ -14,9 +14,38 @@ export class NotaFiscalService {
   readonly notasFiscais = signal<NotaFiscal[]>([]);
   readonly loading = signal<boolean>(false);
 
+  private normalizeNotaFiscal(item: any): NotaFiscal {
+    return {
+      ...item,
+      id: item.id,
+      uuid: item.uuid,
+      numeroSequencial: item.numeroSequencial ?? item.numero_sequencial,
+      numero_sequencial: item.numero_sequencial ?? item.numeroSequencial,
+      status: item.status,
+      valorTotal: Number(item.valorTotal ?? item.valor_total ?? 0),
+      valor_total: Number(item.valor_total ?? item.valorTotal ?? 0),
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      dataCriacao: item.dataCriacao ?? item.created_at,
+      itens: Array.isArray(item.itens) ? item.itens.map((it: any) => ({
+        ...it,
+        codigoProduto: it.codigoProduto || it.codigo_produto || '',
+        codigo_produto: it.codigo_produto || it.codigoProduto || '',
+        quantidade: Number(it.quantidade || 0),
+        precoUnitario: Number(it.precoUnitario ?? it.preco_unitario ?? 0),
+        preco_unitario: Number(it.preco_unitario ?? it.precoUnitario ?? 0),
+        subtotal: Number(it.subtotal ?? (Number(it.quantidade || 0) * Number(it.preco_unitario ?? it.precoUnitario ?? 0)))
+      })) : []
+    };
+  }
+
   getNotasFiscais(): Observable<NotaFiscal[]> {
     this.loading.set(true);
-    return this.http.get<NotaFiscal[]>(this.apiUrl).pipe(
+    return this.http.get<any>(this.apiUrl).pipe(
+      map(res => {
+        const rawList = Array.isArray(res) ? res : (res?.data || []);
+        return rawList.map((item: any) => this.normalizeNotaFiscal(item));
+      }),
       tap({
         next: (data) => {
           this.notasFiscais.set(data || []);
@@ -25,12 +54,20 @@ export class NotaFiscalService {
         error: () => {
           this.loading.set(false);
         }
+      }),
+      catchError(err => {
+        this.loading.set(false);
+        return throwError(() => err);
       })
     );
   }
 
   criarNotaFiscal(request: CreateNotaFiscalRequest): Observable<NotaFiscal> {
-    return this.http.post<NotaFiscal>(this.apiUrl, request).pipe(
+    return this.http.post<any>(this.apiUrl, request).pipe(
+      map(res => {
+        const rawItem = res?.data ?? res;
+        return this.normalizeNotaFiscal(rawItem);
+      }),
       tap((novaNota) => {
         this.notasFiscais.update(list => [novaNota, ...list]);
       })
@@ -38,18 +75,31 @@ export class NotaFiscalService {
   }
 
   imprimirNotaFiscal(id: string | number): Observable<any> {
+    // Muda o status localmente para "EmProcessamento" imediatamente
+    this.atualizarStatusNota(id, 'EmProcessamento');
+
     return this.http.post<any>(`${this.apiUrl}/${id}/imprimir`, {}).pipe(
       tap(() => {
-        this.notasFiscais.update(list =>
-          list.map(nota => (String(nota.id) === String(id) || nota.uuid === String(id)) ? { ...nota, status: 'EmProcessamento' } : nota)
-        );
+        this.atualizarStatusNota(id, 'EmProcessamento');
+      }),
+      catchError((err) => {
+        // Se a requisição falhar (ex: HTTP 400 Bad Request se nota não estiver Aberta), restaura/mantém a integridade
+        return throwError(() => err);
       })
     );
   }
 
   atualizarStatusNota(id: string | number, status: NotaFiscal['status']): void {
+    const targetStr = String(id || '').trim().toLowerCase();
     this.notasFiscais.update(list =>
-      list.map(nota => (String(nota.id) === String(id) || nota.uuid === String(id)) ? { ...nota, status } : nota)
+      list.map(nota => {
+        const notaIdStr = String(nota.id || '').trim().toLowerCase();
+        const notaUuidStr = String(nota.uuid || '').trim().toLowerCase();
+        if (notaIdStr === targetStr || (notaUuidStr && notaUuidStr === targetStr)) {
+          return { ...nota, status };
+        }
+        return nota;
+      })
     );
   }
 }

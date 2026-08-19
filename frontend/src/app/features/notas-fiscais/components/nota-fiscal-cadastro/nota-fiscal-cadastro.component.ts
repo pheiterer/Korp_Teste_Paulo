@@ -1,8 +1,10 @@
-import { Component, EventEmitter, OnInit, Output, inject, signal } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output, inject, signal, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NotaFiscalService } from '../../../../core/services/nota-fiscal.service';
 import { ProdutoService } from '../../../../core/services/produto.service';
+import { SignalRService } from '../../../../core/services/signalr.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { Produto } from '../../../../core/models/produto.model';
 
@@ -32,12 +34,19 @@ import { Produto } from '../../../../core/models/produto.model';
 
         <div formArrayName="itens" class="itens-list">
           @for (item of itensControls; track $index; let i = $index) {
-            <div [formGroupName]="i" class="item-row">
+            <div [formGroup]="item" class="item-row">
               <!-- Seletor de Produto -->
               <div class="form-group flex-2">
                 <label class="form-label-sm">Produto</label>
-                <select formControlName="codigoProduto" class="form-control" [class.invalid]="isItemFieldInvalid(i, 'codigoProduto')">
-                  <option value="" disabled>Selecione um produto...</option>
+                <select
+                  formControlName="codigoProduto"
+                  class="form-control"
+                  [class.invalid]="isItemFieldInvalid(i, 'codigoProduto')"
+                  (change)="onProductChange(i, $event)"
+                >
+                  @if (produtos().length === 0) {
+                    <option value="" disabled>Nenhum produto cadastrado...</option>
+                  }
                   @for (prod of produtos(); track prod.codigo) {
                     <option [value]="prod.codigo">
                       {{ prod.codigo }} - {{ prod.descricao }} (Saldo: {{ prod.saldo }})
@@ -132,7 +141,9 @@ export class NotaFiscalCadastroComponent implements OnInit {
   private fb = inject(FormBuilder);
   private notaFiscalService = inject(NotaFiscalService);
   private produtoService = inject(ProdutoService);
+  private signalRService = inject(SignalRService);
   private toastService = inject(ToastService);
+  private destroyRef = inject(DestroyRef);
 
   readonly isSubmitting = signal(false);
   readonly produtos = this.produtoService.produtos;
@@ -158,13 +169,37 @@ export class NotaFiscalCadastroComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.produtoService.getProdutos().subscribe();
     this.adicionarItem();
+    this.carregarProdutos();
+    this.inscreverEventosSignalR();
   }
 
-  adicionarItem(): void {
+  carregarProdutos(): void {
+    this.produtoService.getProdutos().subscribe();
+  }
+
+  private inscreverEventosSignalR(): void {
+    this.signalRService.notaFiscalAbatida$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.produtoService.getProdutos().subscribe();
+      });
+  }
+
+  onProductChange(index: number, event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    if (target && this.itensControls[index]) {
+      this.itensControls[index].get('codigoProduto')?.setValue(target.value);
+    }
+  }
+
+  adicionarItem(codigo?: string): void {
+    const defaultCodigo = (codigo !== undefined && codigo !== '')
+      ? codigo
+      : (this.produtos().length > 0 ? this.produtos()[0].codigo : '');
+
     const itemGroup = this.fb.group({
-      codigoProduto: ['', Validators.required],
+      codigoProduto: [defaultCodigo, Validators.required],
       quantidade: [1, [Validators.required, Validators.min(1)]],
       precoUnitario: [10.00, [Validators.required, Validators.min(0.01)]]
     });
@@ -194,18 +229,39 @@ export class NotaFiscalCadastroComponent implements OnInit {
   onSubmit(): void {
     if (this.form.invalid || this.itensControls.length === 0) {
       this.form.markAllAsTouched();
-      this.toastService.warning('Formulário Inválido', 'Verifique se todos os itens da nota possuem produto, quantidade e preço válidos.');
+      const invalidFields: string[] = [];
+      this.itensControls.forEach((ctrl, idx) => {
+        const cod = ctrl.get('codigoProduto')?.value;
+        if (!cod || String(cod).trim() === '') {
+          invalidFields.push(`Item ${idx + 1}: selecione um produto`);
+        }
+        if ((Number(ctrl.get('quantidade')?.value) || 0) < 1) {
+          invalidFields.push(`Item ${idx + 1}: quantidade mínima é 1`);
+        }
+        if ((Number(ctrl.get('precoUnitario')?.value) || 0) < 0.01) {
+          invalidFields.push(`Item ${idx + 1}: preço unitário deve ser maior que zero`);
+        }
+      });
+      const errorMsg = invalidFields.length > 0 ? invalidFields.join('\n') : 'Preencha todos os campos obrigatórios.';
+      this.toastService.warning('Formulário Inválido', errorMsg);
       return;
     }
 
     this.isSubmitting.set(true);
 
     const request = {
-      itens: this.itensControls.map(ctrl => ({
-        codigoProduto: ctrl.get('codigoProduto')?.value,
-        quantidade: Number(ctrl.get('quantidade')?.value),
-        precoUnitario: Number(ctrl.get('precoUnitario')?.value)
-      }))
+      itens: this.itensControls.map(ctrl => {
+        const codigo = String(ctrl.get('codigoProduto')?.value || '').trim();
+        const preco = Number(ctrl.get('precoUnitario')?.value) || 0;
+        const qtd = Number(ctrl.get('quantidade')?.value) || 1;
+        return {
+          codigo_produto: codigo,
+          codigoProduto: codigo,
+          quantidade: qtd,
+          preco_unitario: preco,
+          precoUnitario: preco
+        };
+      })
     };
 
     this.notaFiscalService.criarNotaFiscal(request).subscribe({
@@ -216,7 +272,11 @@ export class NotaFiscalCadastroComponent implements OnInit {
           `Nota Fiscal #${novaNota.id || novaNota.uuid} gerada com status "Aberta"!`
         );
         this.itensArray.clear();
-        this.adicionarItem();
+        const defaultProd = this.produtos().length > 0 ? this.produtos()[0].codigo : '';
+        this.adicionarItem(defaultProd);
+        this.form.markAsPristine();
+        this.form.markAsUntouched();
+        this.produtoService.getProdutos().subscribe();
         this.notaCadastrada.emit();
       },
       error: () => {

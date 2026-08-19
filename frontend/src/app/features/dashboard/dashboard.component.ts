@@ -1,8 +1,10 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SignalRService } from '../../core/services/signalr.service';
-import { ToastService } from '../../core/services/toast.service';
+import { ProdutoService } from '../../core/services/produto.service';
+import { NotaFiscalService } from '../../core/services/nota-fiscal.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -85,6 +87,117 @@ import { ToastService } from '../../core/services/toast.service';
         </div>
       </div>
 
+      <!-- Dual Boards Grid: 10 Produtos & 10 Notas Fiscais -->
+      <div class="boards-grid">
+        <!-- Board 1: Produtos (10 Itens) -->
+        <div class="board-card glass-card">
+          <div class="board-header">
+            <div class="header-left">
+              <span class="board-icon">📦</span>
+              <div>
+                <h3>Estoque de Produtos</h3>
+                <span class="board-subtitle">10 primeiros itens do estoque</span>
+              </div>
+            </div>
+            <a routerLink="/produtos" class="btn-link">Ver todos &rarr;</a>
+          </div>
+
+          <div class="board-table-container">
+            @if (produtoService.loading()) {
+              <div class="loading-state">
+                <div class="spinner"></div>
+                <span>Carregando produtos...</span>
+              </div>
+            } @else if (produtoService.produtos().length === 0) {
+              <div class="empty-state">
+                <p>Nenhum produto cadastrado.</p>
+              </div>
+            } @else {
+              <table class="board-table">
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Descrição</th>
+                    <th class="text-right">Saldo</th>
+                    <th class="text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (produto of produtoService.produtos().slice(0, 10); track produto.codigo) {
+                    <tr>
+                      <td class="font-mono code-cell">{{ produto.codigo }}</td>
+                      <td>{{ produto.descricao }}</td>
+                      <td class="text-right font-mono">{{ produto.saldo }}</td>
+                      <td class="text-center">
+                        @if (produto.saldo > 10) {
+                          <span class="badge badge-success">Em Estoque</span>
+                        } @else if (produto.saldo > 0) {
+                          <span class="badge badge-warning">Baixo</span>
+                        } @else {
+                          <span class="badge badge-error">Esgotado</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
+        </div>
+
+        <!-- Board 2: Notas Fiscais (10 Notas) -->
+        <div class="board-card glass-card">
+          <div class="board-header">
+            <div class="header-left">
+              <span class="board-icon">📄</span>
+              <div>
+                <h3>Notas Fiscais</h3>
+                <span class="board-subtitle">10 últimas notas emitidas</span>
+              </div>
+            </div>
+            <a routerLink="/notas-fiscais" class="btn-link">Ver todas &rarr;</a>
+          </div>
+
+          <div class="board-table-container">
+            @if (notaFiscalService.loading()) {
+              <div class="loading-state">
+                <div class="spinner"></div>
+                <span>Carregando notas fiscais...</span>
+              </div>
+            } @else if (notaFiscalService.notasFiscais().length === 0) {
+              <div class="empty-state">
+                <p>Nenhuma nota fiscal emitida.</p>
+              </div>
+            } @else {
+              <table class="board-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th class="text-right">Valor Total</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-center">Itens</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (nota of notaFiscalService.notasFiscais().slice(0, 10); track nota.id) {
+                    <tr>
+                      <td class="font-mono code-cell">#{{ nota.id }}</td>
+                      <td class="text-right font-mono">{{ (nota.valorTotal || nota.valor_total || 0) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</td>
+                      <td class="text-center">
+                        <span [ngClass]="getBadgeClassNota(nota.status)">
+                          {{ nota.status }}
+                        </span>
+                      </td>
+                      <td class="text-center font-mono">{{ nota.itens.length || 0 }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
+        </div>
+      </div>
+
       <!-- Feature Highlights -->
       <section class="features-section">
         <h2 class="section-title">Recursos de Integração & Rastreabilidade</h2>
@@ -112,13 +225,41 @@ import { ToastService } from '../../core/services/toast.service';
 })
 export class DashboardComponent implements OnInit {
   readonly signalRService = inject(SignalRService);
-  private readonly toastService = inject(ToastService);
+  readonly produtoService = inject(ProdutoService);
+  readonly notaFiscalService = inject(NotaFiscalService);
+  private destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
-    // Exibe notificação de boas-vindas
-    this.toastService.info(
-      'Sistema Inicializado (Issue 12)',
-      'Arquitetura Standalone Angular 19 pronta com Correlation ID Interceptor & SignalR.'
-    );
+    this.carregarDados();
+    this.inscreverEventosSignalR();
+  }
+
+  carregarDados(): void {
+    this.produtoService.getProdutos().subscribe();
+    this.notaFiscalService.getNotasFiscais().subscribe();
+  }
+
+  private inscreverEventosSignalR(): void {
+    this.signalRService.notaFiscalAbatida$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.carregarDados();
+      });
+
+    this.signalRService.abatimentoEstoqueFalhou$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.carregarDados();
+      });
+  }
+
+  getBadgeClassNota(status: string): string {
+    switch (status) {
+      case 'Aberta': return 'badge badge-blue';
+      case 'EmProcessamento': return 'badge badge-amber';
+      case 'Fechada': return 'badge badge-emerald';
+      case 'Cancelada': return 'badge badge-red';
+      default: return 'badge';
+    }
   }
 }

@@ -227,14 +227,15 @@
   - [x] Integrar autocomplete/seleção dinâmica de produtos cadastrados (`GET /api/produtos`) no formulário de notas fiscais.
   - [x] Criar o componente `NotaFiscalListComponent` para visualização das notas fiscais com badges de status (`Aberta`, `EmProcessamento`, `Fechada`, `Cancelada`).
 
-### Issue 14: Tela de Impressão, Transições de Estado (Saga) e Reatividade em Tempo Real (SignalR & RxJS)
+### Issue 14: Tela de Impressão, Transições de Estado (Saga) e Reatividade em Tempo Real (SignalR & RxJS) - [✅ Concluído]
+- **Status:** ✅ Concluído
 - **Descrição:** Implementar a ação de impressão/emissão de nota fiscal, controle de loading reativo, manipulação de streams com RxJS e consumo de eventos em tempo real via SignalR.
 - **Stack:** RxJS (`switchMap`, `catchError`, `tap`, `takeUntilDestroyed`), `@microsoft/signalr`.
 - **Tarefas:**
-  - [ ] Criar o botão "Imprimir Nota" acionando o endpoint `POST /api/v1/notas-fiscais/:id/imprimir` via YARP Gateway.
-  - [ ] Alterar o status da nota imediatamente para `"EmProcessamento"` na interface e ativar indicador de carregamento/spinner reativo.
-  - [ ] Utilizar operadores do RxJS (`switchMap`, `catchError`, `tap`) para gerenciar as chamadas assíncronas e desinscrições no ciclo de vida.
-  - [ ] Escutar os eventos do `SignalRService`:
+  - [x] Criar o botão "Imprimir Nota" acionando o endpoint `POST /api/v1/notas-fiscais/:id/imprimir` via YARP Gateway.
+  - [x] Alterar o status da nota imediatamente para `"EmProcessamento"` na interface e ativar indicador de carregamento/spinner reativo.
+  - [x] Utilizar operadores do RxJS (`switchMap`, `catchError`, `tap`, `takeUntilDestroyed`) para gerenciar as chamadas assíncronas e desinscrições no ciclo de vida.
+  - [x] Escutar os eventos do `SignalRService`:
     - Evento `NotaFiscalAbatida`: Atualizar status da nota fiscal para `"Fechada"`, emitir alerta de sucesso e atualizar o saldo de estoque dos produtos na tabela.
     - Evento `AbatimentoEstoqueFalhou`: Processar o retorno da Saga compensatória na UI, alterando o status da nota para `"Cancelada"` e exibindo Toast/Snackbar de erro detalhando o motivo (ex: Saldo Insuficiente).
 

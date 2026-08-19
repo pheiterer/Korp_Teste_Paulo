@@ -42,7 +42,7 @@ describe('ProdutoService', () => {
   });
 
   it('deve enviar requisição de cadastro de produto', () => {
-    const newProd = { codigo: 'NEW-01', descricao: 'Novo Produto', saldo: 20 };
+    const newProd = { codigo: 'NEW-01', descricao: 'Novo Produto', saldoInicial: 20 };
 
     service.criarProduto(newProd).subscribe(res => {
       expect(res.codigo).toBe('NEW-01');
@@ -51,6 +51,6 @@ describe('ProdutoService', () => {
     const req = httpTestingController.expectOne(req => req.url.includes('/api/produtos'));
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(newProd);
-    req.flush(newProd);
+    req.flush({ codigo: 'NEW-01', descricao: 'Novo Produto', saldo: 20 });
   });
 });

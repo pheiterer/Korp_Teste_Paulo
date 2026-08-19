@@ -28,4 +28,13 @@ describe('NotaFiscalCadastroComponent', () => {
     fixture.detectChanges();
     expect(comp.itensControls.length).toBe(1);
   });
+
+  it('deve respeitar a seleção de produto diferente feita pelo usuário', () => {
+    const fixture = TestBed.createComponent(NotaFiscalCadastroComponent);
+    const comp = fixture.componentInstance;
+    fixture.detectChanges();
+
+    comp.itensControls[0].get('codigoProduto')?.setValue('PROD-CUSTOM-99');
+    expect(comp.itensControls[0].get('codigoProduto')?.value).toBe('PROD-CUSTOM-99');
+  });
 });
