@@ -2,17 +2,26 @@ export type NotaFiscalStatus = 'Aberta' | 'EmProcessamento' | 'Fechada' | 'Cance
 
 export interface NotaFiscalItem {
   id?: number | string;
-  codigoProduto: string;
+  nota_fiscal_id?: number;
+  produto_id?: number;
+  codigo_produto?: string;
+  codigoProduto?: string;
   descricaoProduto?: string;
   quantidade: number;
-  precoUnitario: number;
+  preco_unitario?: number;
+  precoUnitario?: number;
+  subtotal?: number;
   valorTotal?: number;
 }
 
 export interface CreateNotaFiscalItemRequest {
-  codigoProduto: string;
+  codigo_produto?: string;
+  codigoProduto?: string;
+  produto_id?: number;
+  produtoId?: number;
   quantidade: number;
-  precoUnitario: number;
+  preco_unitario?: number;
+  precoUnitario?: number;
 }
 
 export interface CreateNotaFiscalRequest {
@@ -22,8 +31,13 @@ export interface CreateNotaFiscalRequest {
 export interface NotaFiscal {
   id: number | string;
   uuid?: string;
+  numero_sequencial?: number;
+  numeroSequencial?: number;
   status: NotaFiscalStatus;
-  valorTotal: number;
+  valor_total?: number;
+  valorTotal?: number;
+  created_at?: string;
+  updated_at?: string;
   dataCriacao?: string;
   itens: NotaFiscalItem[];
 }

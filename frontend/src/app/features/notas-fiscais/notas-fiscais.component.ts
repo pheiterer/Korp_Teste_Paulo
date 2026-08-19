@@ -36,20 +36,20 @@ import { NotaFiscalService } from '../../core/services/nota-fiscal.service';
       .page-title {
         font-size: 1.75rem;
         font-weight: 800;
-        color: #ffffff;
+        color: var(--text-main);
         letter-spacing: -0.02em;
       }
 
       .page-subtitle {
         font-size: 0.9375rem;
-        color: #94a3b8;
+        color: var(--text-muted);
         margin-top: 0.25rem;
       }
     }
 
     .notas-grid {
       display: grid;
-      grid-template-columns: 460px 1fr;
+      grid-template-columns: minmax(460px, 500px) 1fr;
       gap: 1.5rem;
       align-items: start;
 

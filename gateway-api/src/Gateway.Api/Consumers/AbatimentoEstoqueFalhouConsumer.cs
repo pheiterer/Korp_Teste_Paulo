@@ -41,7 +41,6 @@ public class AbatimentoEstoqueFalhouConsumer : IConsumer<AbatimentoEstoqueFalhou
 
             // Envia mensagem via WebSockets (SignalR) para todos os clientes conectados
             await _hubContext.Clients.All.SendAsync("ReceberFalhaEstoque", notificationPayload, context.CancellationToken);
-            await _hubContext.Clients.All.SendAsync("ReceiveStockFailure", notificationPayload, context.CancellationToken);
 
             _logger.LogInformation("Notificação de falha de estoque enviada via SignalR Hub para Nota Fiscal '{NotaFiscalId}'.", message.NotaFiscalId);
         }

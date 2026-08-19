@@ -218,25 +218,37 @@
 
 ### Issue 13: Telas e Formulários Reativos (Produtos e Notas Fiscais) - [✅ Concluído]
 - **Status:** ✅ Concluído
-- **Descrição:** Desenvolver as interfaces de formulários reativos para cadastro e visualização em tempo real de Produtos e Notas Fiscais.
-- **Stack:** ReactiveFormsModule, FormBuilder, RxJS, SCSS Design System.
+- **Descrição:** Desenvolver as interfaces de formulários reativos para cadastro e visualização em tempo real de Produtos e Notas Fiscais, além do Dashboard gerencial.
+- **Stack:** ReactiveFormsModule, FormBuilder, RxJS, SCSS Design System (Glassmorphism), Lucide/SVG Icons.
 - **Tarefas:**
-  - [x] Criar o componente `ProdutoCadastroComponent` (inputs validados de Código, Descrição e Saldo Inicial).
+  - [x] Criar o componente `ProdutoCadastroComponent` (inputs validados de Código, Descrição e Saldo Inicial com sanitização numérica).
   - [x] Criar o componente `ProdutoListComponent` para exibição reativa da tabela de produtos e saldos atualizados de estoque.
   - [x] Criar o componente `NotaFiscalCadastroComponent` com formulário reativo flexível (`FormArray`) para permitir múltiplos itens na mesma nota fiscal.
-  - [x] Integrar autocomplete/seleção dinâmica de produtos cadastrados (`GET /api/produtos`) no formulário de notas fiscais.
-  - [x] Criar o componente `NotaFiscalListComponent` para visualização das notas fiscais com badges de status (`Aberta`, `EmProcessamento`, `Fechada`, `Cancelada`).
+  - [x] Integrar seleção dinâmica de produtos cadastrados (`GET /api/produtos`) no formulário de notas fiscais com sincronização em tempo real de saldos via SignalR.
+  - [x] Garantir sincronização contínua entre o `FormControl` e o `<select>` do navegador, suportando cadastros consecutivos sem perda de seleção do produto.
+  - [x] Criar o componente `NotaFiscalListComponent` para visualização das notas fiscais com badges de status (`Aberta`, `EmProcessamento`, `Fechada`, `Cancelada`) e expansão detalhada de itens.
+  - [x] Criar o `DashboardComponent` com duas boards principais (Top 10 Produtos em estoque e Top 10 Notas Fiscais emitidas) com atualização reativa em tempo real.
+  - [x] Implementar normalização de envelopes de resposta da API de Faturamento (`{ success: true, data: [...] }`) e suporte bidirecional a campos `snake_case` e `camelCase`.
+  - [x] Implementar o `ThemeService` com suporte a Modo Claro (padrão) e Modo Escuro, aplicando a paleta oficial de valores da KORP ERP (Vermelho `#E60039`, Azul Marinho `#1E3A52`, Aço Cerúleo `#6B93B1` e Grafite `#36383A`), com botão de alternância suave no Navbar e persistência em `localStorage`.
 
-### Issue 14: Tela de Impressão, Transições de Estado (Saga) e Reatividade em Tempo Real (SignalR & RxJS)
+### Issue 14: Tela de Impressão, Transições de Estado (Saga) e Reatividade em Tempo Real (SignalR & RxJS) - [✅ Concluído]
+- **Status:** ✅ Concluído
 - **Descrição:** Implementar a ação de impressão/emissão de nota fiscal, controle de loading reativo, manipulação de streams com RxJS e consumo de eventos em tempo real via SignalR.
 - **Stack:** RxJS (`switchMap`, `catchError`, `tap`, `takeUntilDestroyed`), `@microsoft/signalr`.
 - **Tarefas:**
-  - [ ] Criar o botão "Imprimir Nota" acionando o endpoint `POST /api/v1/notas-fiscais/:id/imprimir` via YARP Gateway.
-  - [ ] Alterar o status da nota imediatamente para `"EmProcessamento"` na interface e ativar indicador de carregamento/spinner reativo.
-  - [ ] Utilizar operadores do RxJS (`switchMap`, `catchError`, `tap`) para gerenciar as chamadas assíncronas e desinscrições no ciclo de vida.
-  - [ ] Escutar os eventos do `SignalRService`:
-    - Evento `NotaFiscalAbatida`: Atualizar status da nota fiscal para `"Fechada"`, emitir alerta de sucesso e atualizar o saldo de estoque dos produtos na tabela.
-    - Evento `AbatimentoEstoqueFalhou`: Processar o retorno da Saga compensatória na UI, alterando o status da nota para `"Cancelada"` e exibindo Toast/Snackbar de erro detalhando o motivo (ex: Saldo Insuficiente).
+  - [x] Criar o botão "Imprimir Nota" acionando o endpoint `POST /api/v1/notas-fiscais/:id/imprimir` via YARP Gateway.
+  - [x] Alterar o status da nota imediatamente para `"EmProcessamento"` na interface e ativar indicador de carregamento/spinner reativo.
+  - [x] Utilizar operadores do RxJS (`switchMap`, `catchError`, `tap`, `takeUntilDestroyed`) para gerenciar as chamadas assíncronas e desinscrições no ciclo de vida.
+  - [x] Escutar os eventos do `SignalRService`:
+    - Evento `NotaFiscalAbatida`: Atualizar status da nota fiscal para `"Fechada"`, emitir alerta de sucesso e atualizar o saldo de estoque dos produtos na tabela e no formulário de cadastro.
+    - Evento `AbatimentoEstoqueFalhou`: Processar o retorno da Saga compensatória na UI, alterando o status da nota para `"Cancelada"` e exibindo Toast de erro detalhando o motivo (ex: Saldo Insuficiente).
+  - [x] Eliminar emissões duplicadas de SignalR no API Gateway (`NotaFiscalAbatidaConsumer` e `AbatimentoEstoqueFalhouConsumer`), garantindo exatamente 1 notificação por evento.
+  - [x] Aprimorar o `ErrorInterceptor` para traduzir e formatar amigavelmente erros de validação RFC 7807 (`ValidationProblemDetails`) do ASP.NET Core e erros de regras de negócio do Go.
+  - [x] Corrigir self-deadlock de Redlock no `NotaFiscalEmitidaConsumer` do Estoque (C#) através de travamento em chaves distintas e agregação de quantidades por produto.
+  - [x] Adicionar validação de unicidade de produtos por nota no backend (Go) e desativação visual automática no `<select>` do formulário para impedir inclusão de itens duplicados.
+  - [x] Implementar extração resiliente de payload e persistência de status no consumidor do Faturamento (`consumer.go` em Go), garantindo a transição definitiva para `"Cancelada"` no banco SQL Server durante a Saga compensatória sem reversões na UI.
+  - [x] Redesenhar o layout dos itens do formulário de Nota Fiscal em cards individuais com visualização completa dos produtos, espaçamento confortável e margens aprimoradas para botões e totalizadores.
+  - [x] Formatar o rótulo de status de `"EmProcessamento"` para `"Em Processamento"` em todos os componentes visuais para aprimorar a experiência do usuário (UX).
 
 ### Issue 14.1: Containerização Docker (Nginx), Configuração de Ambiente e Health Check (Frontend)
 - **Descrição:** Preparar a aplicação Angular para rodar em container Docker multi-stage via Nginx e integrar ao ecossistema `docker-compose.yml`.

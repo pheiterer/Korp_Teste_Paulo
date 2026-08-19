@@ -8,5 +8,5 @@ export interface Produto {
 export interface CreateProdutoRequest {
   codigo: string;
   descricao: string;
-  saldo: number;
+  saldoInicial: number;
 }

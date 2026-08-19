@@ -124,9 +124,9 @@ export class ProdutoCadastroComponent {
     const value = this.form.value;
 
     this.produtoService.criarProduto({
-      codigo: value.codigo.trim(),
-      descricao: value.descricao.trim(),
-      saldo: Number(value.saldo)
+      codigo: (value.codigo || '').trim(),
+      descricao: (value.descricao || '').trim(),
+      saldoInicial: Math.floor(Number(value.saldo) || 0)
     }).subscribe({
       next: (novo) => {
         this.isSubmitting.set(false);

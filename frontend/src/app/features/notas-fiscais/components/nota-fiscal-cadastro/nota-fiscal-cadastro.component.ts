@@ -1,8 +1,10 @@
-import { Component, EventEmitter, OnInit, Output, inject, signal } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output, inject, signal, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NotaFiscalService } from '../../../../core/services/nota-fiscal.service';
 import { ProdutoService } from '../../../../core/services/produto.service';
+import { SignalRService } from '../../../../core/services/signalr.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { Produto } from '../../../../core/models/produto.model';
 
@@ -32,15 +34,51 @@ import { Produto } from '../../../../core/models/produto.model';
 
         <div formArrayName="itens" class="itens-list">
           @for (item of itensControls; track $index; let i = $index) {
-            <div [formGroupName]="i" class="item-row">
-              <!-- Seletor de Produto -->
-              <div class="form-group flex-2">
-                <label class="form-label-sm">Produto</label>
-                <select formControlName="codigoProduto" class="form-control" [class.invalid]="isItemFieldInvalid(i, 'codigoProduto')">
-                  <option value="" disabled>Selecione um produto...</option>
+            <div [formGroup]="item" class="item-card">
+              <!-- Item Card Header -->
+              <div class="item-card-header">
+                <div class="item-badge">
+                  <span class="item-num">Item #{{ i + 1 }}</span>
+                </div>
+                <div class="item-header-actions">
+                  <div class="item-subtotal-tag">
+                    <span class="subtotal-label">Subtotal:</span>
+                    <span class="subtotal-val font-mono">{{ calcularSubtotalItem(i) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+                  </div>
+                  <button
+                    type="button"
+                    (click)="removerItem(i)"
+                    class="btn-remove-item"
+                    [disabled]="itensControls.length <= 1"
+                    title="Remover este item"
+                    aria-label="Remover item"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Seletor de Produto (Largura Total) -->
+              <div class="form-group product-field">
+                <label class="form-label-sm">Produto <span class="required">*</span></label>
+                <select
+                  formControlName="codigoProduto"
+                  class="form-control select-product"
+                  [class.invalid]="isItemFieldInvalid(i, 'codigoProduto')"
+                  (change)="onProductChange(i, $event)"
+                >
+                  @if (produtos().length === 0) {
+                    <option value="" disabled>Nenhum produto cadastrado...</option>
+                  }
                   @for (prod of produtos(); track prod.codigo) {
-                    <option [value]="prod.codigo">
+                    <option
+                      [value]="prod.codigo"
+                      [disabled]="isProductSelectedInAnotherItem(prod.codigo, i)"
+                    >
                       {{ prod.codigo }} - {{ prod.descricao }} (Saldo: {{ prod.saldo }})
+                      @if (isProductSelectedInAnotherItem(prod.codigo, i)) {
+                        (Já selecionado)
+                      }
                     </option>
                   }
                 </select>
@@ -49,57 +87,39 @@ import { Produto } from '../../../../core/models/produto.model';
                 }
               </div>
 
-              <!-- Quantidade -->
-              <div class="form-group flex-1">
-                <label class="form-label-sm">Qtd</label>
-                <input
-                  type="number"
-                  formControlName="quantidade"
-                  min="1"
-                  placeholder="1"
-                  class="form-control text-right"
-                  [class.invalid]="isItemFieldInvalid(i, 'quantidade')"
-                />
-                @if (isItemFieldInvalid(i, 'quantidade')) {
-                  <span class="error-msg">Min 1.</span>
-                }
-              </div>
+              <!-- Quantidade e Preço Unitário -->
+              <div class="item-card-row">
+                <div class="form-group flex-1">
+                  <label class="form-label-sm">Quantidade <span class="required">*</span></label>
+                  <input
+                    type="number"
+                    formControlName="quantidade"
+                    min="1"
+                    placeholder="1"
+                    class="form-control text-right"
+                    [class.invalid]="isItemFieldInvalid(i, 'quantidade')"
+                  />
+                  @if (isItemFieldInvalid(i, 'quantidade')) {
+                    <span class="error-msg">Mínimo 1 un.</span>
+                  }
+                </div>
 
-              <!-- Preço Unitário -->
-              <div class="form-group flex-1">
-                <label class="form-label-sm">Preço R$</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  formControlName="precoUnitario"
-                  min="0.01"
-                  placeholder="0.00"
-                  class="form-control text-right"
-                  [class.invalid]="isItemFieldInvalid(i, 'precoUnitario')"
-                />
-                @if (isItemFieldInvalid(i, 'precoUnitario')) {
-                  <span class="error-msg">Valor > 0.</span>
-                }
+                <div class="form-group flex-1">
+                  <label class="form-label-sm">Preço Unitário (R$) <span class="required">*</span></label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    formControlName="precoUnitario"
+                    min="0.01"
+                    placeholder="0.00"
+                    class="form-control text-right"
+                    [class.invalid]="isItemFieldInvalid(i, 'precoUnitario')"
+                  />
+                  @if (isItemFieldInvalid(i, 'precoUnitario')) {
+                    <span class="error-msg">Valor > R$ 0,00</span>
+                  }
+                </div>
               </div>
-
-              <!-- Subtotal do Item -->
-              <div class="form-group flex-1 item-subtotal">
-                <span class="subtotal-label">Subtotal</span>
-                <span class="subtotal-val font-mono">
-                  {{ calcularSubtotalItem(i) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-                </span>
-              </div>
-
-              <!-- Botão Remover -->
-              <button
-                type="button"
-                (click)="removerItem(i)"
-                class="btn-remove"
-                [disabled]="itensControls.length <= 1"
-                aria-label="Remover item"
-              >
-                &times;
-              </button>
             </div>
           }
         </div>
@@ -132,7 +152,9 @@ export class NotaFiscalCadastroComponent implements OnInit {
   private fb = inject(FormBuilder);
   private notaFiscalService = inject(NotaFiscalService);
   private produtoService = inject(ProdutoService);
+  private signalRService = inject(SignalRService);
   private toastService = inject(ToastService);
+  private destroyRef = inject(DestroyRef);
 
   readonly isSubmitting = signal(false);
   readonly produtos = this.produtoService.produtos;
@@ -158,13 +180,50 @@ export class NotaFiscalCadastroComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.produtoService.getProdutos().subscribe();
     this.adicionarItem();
+    this.carregarProdutos();
+    this.inscreverEventosSignalR();
   }
 
-  adicionarItem(): void {
+  carregarProdutos(): void {
+    this.produtoService.getProdutos().subscribe();
+  }
+
+  private inscreverEventosSignalR(): void {
+    this.signalRService.notaFiscalAbatida$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.produtoService.getProdutos().subscribe();
+      });
+  }
+
+  onProductChange(index: number, event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    if (target && this.itensControls[index]) {
+      this.itensControls[index].get('codigoProduto')?.setValue(target.value);
+    }
+  }
+
+  isProductSelectedInAnotherItem(codigo: string, currentIndex: number): boolean {
+    if (!codigo) return false;
+    const targetCode = String(codigo).trim().toUpperCase();
+    return this.itensControls.some((ctrl, idx) => {
+      if (idx === currentIndex) return false;
+      const currentVal = String(ctrl.get('codigoProduto')?.value || '').trim().toUpperCase();
+      return currentVal === targetCode;
+    });
+  }
+
+  adicionarItem(codigo?: string): void {
+    let defaultCodigo = codigo;
+    if (!defaultCodigo || defaultCodigo === '') {
+      const existingCodes = this.itensControls.map(c => String(c.get('codigoProduto')?.value || '').trim().toUpperCase());
+      const availableProd = this.produtos().find(p => !existingCodes.includes(String(p.codigo).trim().toUpperCase()));
+      defaultCodigo = availableProd ? availableProd.codigo : (this.produtos().length > 0 ? this.produtos()[0].codigo : '');
+    }
+
     const itemGroup = this.fb.group({
-      codigoProduto: ['', Validators.required],
+      codigoProduto: [defaultCodigo, Validators.required],
       quantidade: [1, [Validators.required, Validators.min(1)]],
       precoUnitario: [10.00, [Validators.required, Validators.min(0.01)]]
     });
@@ -194,18 +253,56 @@ export class NotaFiscalCadastroComponent implements OnInit {
   onSubmit(): void {
     if (this.form.invalid || this.itensControls.length === 0) {
       this.form.markAllAsTouched();
-      this.toastService.warning('Formulário Inválido', 'Verifique se todos os itens da nota possuem produto, quantidade e preço válidos.');
+      const invalidFields: string[] = [];
+      const seenCodes = new Set<string>();
+
+      this.itensControls.forEach((ctrl, idx) => {
+        const cod = String(ctrl.get('codigoProduto')?.value || '').trim();
+        if (!cod) {
+          invalidFields.push(`Item ${idx + 1}: selecione um produto`);
+        } else {
+          const upperCod = cod.toUpperCase();
+          if (seenCodes.has(upperCod)) {
+            invalidFields.push(`Item ${idx + 1}: produto duplicado na mesma nota`);
+          }
+          seenCodes.add(upperCod);
+        }
+
+        if ((Number(ctrl.get('quantidade')?.value) || 0) < 1) {
+          invalidFields.push(`Item ${idx + 1}: quantidade mínima é 1`);
+        }
+        if ((Number(ctrl.get('precoUnitario')?.value) || 0) < 0.01) {
+          invalidFields.push(`Item ${idx + 1}: preço unitário deve ser maior que zero`);
+        }
+      });
+      const errorMsg = invalidFields.length > 0 ? invalidFields.join('\n') : 'Preencha todos os campos obrigatórios.';
+      this.toastService.warning('Formulário Inválido', errorMsg);
+      return;
+    }
+
+    // Double check duplicate items
+    const codes = this.itensControls.map(c => String(c.get('codigoProduto')?.value || '').trim().toUpperCase());
+    const uniqueCodes = new Set(codes);
+    if (uniqueCodes.size !== codes.length) {
+      this.toastService.warning('Produtos Duplicados', 'Não é permitido incluir o mesmo produto mais de uma vez na mesma nota fiscal.');
       return;
     }
 
     this.isSubmitting.set(true);
 
     const request = {
-      itens: this.itensControls.map(ctrl => ({
-        codigoProduto: ctrl.get('codigoProduto')?.value,
-        quantidade: Number(ctrl.get('quantidade')?.value),
-        precoUnitario: Number(ctrl.get('precoUnitario')?.value)
-      }))
+      itens: this.itensControls.map(ctrl => {
+        const codigo = String(ctrl.get('codigoProduto')?.value || '').trim();
+        const preco = Number(ctrl.get('precoUnitario')?.value) || 0;
+        const qtd = Number(ctrl.get('quantidade')?.value) || 1;
+        return {
+          codigo_produto: codigo,
+          codigoProduto: codigo,
+          quantidade: qtd,
+          preco_unitario: preco,
+          precoUnitario: preco
+        };
+      })
     };
 
     this.notaFiscalService.criarNotaFiscal(request).subscribe({
@@ -216,7 +313,11 @@ export class NotaFiscalCadastroComponent implements OnInit {
           `Nota Fiscal #${novaNota.id || novaNota.uuid} gerada com status "Aberta"!`
         );
         this.itensArray.clear();
-        this.adicionarItem();
+        const defaultProd = this.produtos().length > 0 ? this.produtos()[0].codigo : '';
+        this.adicionarItem(defaultProd);
+        this.form.markAsPristine();
+        this.form.markAsUntouched();
+        this.produtoService.getProdutos().subscribe();
         this.notaCadastrada.emit();
       },
       error: () => {

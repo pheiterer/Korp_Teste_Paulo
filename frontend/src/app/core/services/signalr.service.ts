@@ -56,7 +56,6 @@ export class SignalRService implements OnDestroy {
       this.hubConnection.start()
         .then(() => {
           this.connectionStatus.set('Connected');
-          this.toastService.info('WebSocket Conectado', 'Conexão em tempo real estabelecida com o API Gateway.');
         })
         .catch(err => {
           console.warn('Erro ao conectar no Hub SignalR:', err);
@@ -69,7 +68,6 @@ export class SignalRService implements OnDestroy {
 
       this.hubConnection.onreconnected(() => {
         this.connectionStatus.set('Connected');
-        this.toastService.success('WebSocket Reconectado', 'Conexão em tempo real restabelecida.');
       });
 
       this.hubConnection.onclose(() => {
@@ -81,14 +79,34 @@ export class SignalRService implements OnDestroy {
     }
   }
 
+  private readonly processedEvents = new Set<string>();
+
+  private isDuplicateEvent(eventKey: string): boolean {
+    if (this.processedEvents.has(eventKey)) {
+      return true;
+    }
+    this.processedEvents.add(eventKey);
+    setTimeout(() => {
+      this.processedEvents.delete(eventKey);
+    }, 3000);
+    return false;
+  }
+
   private registerEventHandlers(): void {
     if (!this.hubConnection) return;
 
-    // Escuta evento NotaFiscalAbatida (Sucesso)
-    this.hubConnection.on('NotaFiscalAbatida', (data: any) => {
+    const handleSuccess = (data: any) => {
+      const notaFiscalId = String(data?.notaFiscalId ?? data?.id ?? data?.NotaFiscalId ?? 'N/A');
+      const correlationId = data?.correlationId ?? data?.CorrelationId;
+      const dedupeKey = `sucesso-${notaFiscalId}-${correlationId || ''}`;
+
+      if (this.isDuplicateEvent(dedupeKey)) {
+        return;
+      }
+
       const notification: NotaFiscalAbatidaNotification = {
-        notaFiscalId: data?.notaFiscalId ?? data?.id ?? data?.NotaFiscalId ?? 'N/A',
-        correlationId: data?.correlationId ?? data?.CorrelationId,
+        notaFiscalId,
+        correlationId,
         message: data?.message ?? data?.Message ?? 'Abatimento de estoque realizado com sucesso.',
         timestamp: new Date().toISOString()
       };
@@ -99,15 +117,22 @@ export class SignalRService implements OnDestroy {
         notification.message || 'Estoque abatido com sucesso!',
         notification.correlationId
       );
-    });
+    };
 
-    // Escuta evento AbatimentoEstoqueFalhou (Falha na Saga)
-    this.hubConnection.on('AbatimentoEstoqueFalhou', (data: any) => {
+    const handleFailure = (data: any) => {
+      const notaFiscalId = String(data?.notaFiscalId ?? data?.id ?? data?.NotaFiscalId ?? 'N/A');
+      const correlationId = data?.correlationId ?? data?.CorrelationId;
+      const dedupeKey = `falha-${notaFiscalId}-${correlationId || ''}`;
+
+      if (this.isDuplicateEvent(dedupeKey)) {
+        return;
+      }
+
       const notification: AbatimentoEstoqueFalhouNotification = {
-        notaFiscalId: data?.notaFiscalId ?? data?.id ?? data?.NotaFiscalId ?? 'N/A',
-        reason: data?.reason ?? data?.Reason ?? 'Saldo Insuficiente de Estoque',
+        notaFiscalId,
+        reason: data?.motivo ?? data?.reason ?? data?.Reason ?? 'Saldo Insuficiente de Estoque',
         details: data?.details ?? data?.Details ?? 'A transação compensatória cancelou a Nota Fiscal.',
-        correlationId: data?.correlationId ?? data?.CorrelationId,
+        correlationId,
         timestamp: new Date().toISOString()
       };
 
@@ -117,7 +142,21 @@ export class SignalRService implements OnDestroy {
         `Falha de Estoque: ${notification.reason}`,
         notification.correlationId
       );
-    });
+    };
+
+    // Escuta eventos de conexão/sistema
+    this.hubConnection.on('Conectado', () => {});
+    this.hubConnection.on('conectado', () => {});
+
+    // Escuta eventos de sucesso de abatimento de estoque
+    this.hubConnection.on('NotaFiscalAbatida', handleSuccess);
+    this.hubConnection.on('ReceberSucessoEstoque', handleSuccess);
+    this.hubConnection.on('ReceiveStockSuccess', handleSuccess);
+
+    // Escuta eventos de falha / transação compensatória (Saga)
+    this.hubConnection.on('AbatimentoEstoqueFalhou', handleFailure);
+    this.hubConnection.on('ReceberFalhaEstoque', handleFailure);
+    this.hubConnection.on('ReceiveStockFailure', handleFailure);
   }
 
   stopConnection(): void {

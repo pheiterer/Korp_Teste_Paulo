@@ -1,6 +1,9 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NotaFiscalService } from '../../../../core/services/nota-fiscal.service';
+import { SignalRService } from '../../../../core/services/signalr.service';
+import { ProdutoService } from '../../../../core/services/produto.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { NotaFiscal, NotaFiscalStatus } from '../../../../core/models/nota-fiscal.model';
 
@@ -69,7 +72,7 @@ import { NotaFiscal, NotaFiscalStatus } from '../../../../core/models/nota-fisca
                       @if (nota.status === 'EmProcessamento') {
                         <span class="mini-spinner"></span>
                       }
-                      {{ nota.status }}
+                      {{ formatStatus(nota.status) }}
                     </span>
                   </td>
                   <td class="text-center">
@@ -113,11 +116,11 @@ import { NotaFiscal, NotaFiscalStatus } from '../../../../core/models/nota-fisca
                           <tbody>
                             @for (item of nota.itens; track $index) {
                               <tr>
-                                <td class="font-mono">{{ item.codigoProduto }}</td>
+                                <td class="font-mono">{{ item.codigoProduto || item.codigo_produto }}</td>
                                 <td class="text-right font-mono">{{ item.quantidade }}</td>
-                                <td class="text-right font-mono">{{ item.precoUnitario | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</td>
+                                <td class="text-right font-mono">{{ (item.precoUnitario || item.preco_unitario || 0) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</td>
                                 <td class="text-right font-mono text-emerald">
-                                  {{ (item.quantidade * item.precoUnitario) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                                  {{ (item.quantidade * (item.precoUnitario || item.preco_unitario || 0)) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
                                 </td>
                               </tr>
                             }
@@ -138,7 +141,10 @@ import { NotaFiscal, NotaFiscalStatus } from '../../../../core/models/nota-fisca
 })
 export class NotaFiscalListComponent implements OnInit {
   readonly notaFiscalService = inject(NotaFiscalService);
+  private signalRService = inject(SignalRService);
+  private produtoService = inject(ProdutoService);
   private toastService = inject(ToastService);
+  private destroyRef = inject(DestroyRef);
 
   readonly statusFiltro = signal<string>('Todas');
   readonly expandedIds = signal<Set<string | number>>(new Set());
@@ -153,10 +159,38 @@ export class NotaFiscalListComponent implements OnInit {
 
   ngOnInit(): void {
     this.carregarNotas();
+    this.inscreverEventosSignalR();
   }
 
   carregarNotas(): void {
     this.notaFiscalService.getNotasFiscais().subscribe();
+  }
+
+  private inscreverEventosSignalR(): void {
+    // Reação ao evento de sucesso no abatimento de estoque via SignalR
+    this.signalRService.notaFiscalAbatida$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(notificacao => {
+        if (notificacao.notaFiscalId) {
+          this.notaFiscalService.atualizarStatusNota(notificacao.notaFiscalId, 'Fechada');
+          this.produtoService.getProdutos().subscribe();
+          setTimeout(() => {
+            this.notaFiscalService.getNotasFiscais().subscribe();
+          }, 300);
+        }
+      });
+
+    // Reação ao evento de falha no abatimento (transação compensatória Saga) via SignalR
+    this.signalRService.abatimentoEstoqueFalhou$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(notificacao => {
+        if (notificacao.notaFiscalId) {
+          this.notaFiscalService.atualizarStatusNota(notificacao.notaFiscalId, 'Cancelada');
+          setTimeout(() => {
+            this.notaFiscalService.getNotasFiscais().subscribe();
+          }, 300);
+        }
+      });
   }
 
   setFiltro(status: string): void {
@@ -179,6 +213,16 @@ export class NotaFiscalListComponent implements OnInit {
     return this.expandedIds().has(id);
   }
 
+  formatStatus(status: NotaFiscalStatus | string): string {
+    switch (status) {
+      case 'EmProcessamento': return 'Em Processamento';
+      case 'Aberta': return 'Aberta';
+      case 'Fechada': return 'Fechada';
+      case 'Cancelada': return 'Cancelada';
+      default: return status || '—';
+    }
+  }
+
   getBadgeClass(status: NotaFiscalStatus): string {
     switch (status) {
       case 'Aberta': return 'badge badge-blue';
@@ -197,11 +241,13 @@ export class NotaFiscalListComponent implements OnInit {
         this.imprimindoId.set(null);
         this.toastService.info(
           'Impressão Solicitada',
-          `Nota Fiscal #${id} alterada para "EmProcessamento" e publicada no RabbitMQ!`
+          `Nota Fiscal #${id} alterada para "Em Processamento" e publicada no RabbitMQ!`
         );
       },
-      error: () => {
+      error: (err) => {
         this.imprimindoId.set(null);
+        const erroMsg = err?.error?.detail || err?.error?.title || 'Não foi possível solicitar a impressão.';
+        this.toastService.error('Erro na Impressão', erroMsg);
       }
     });
   }

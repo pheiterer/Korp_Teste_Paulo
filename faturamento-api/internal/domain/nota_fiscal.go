@@ -18,11 +18,12 @@ const (
 
 // Erros de Dominio
 var (
-	ErrNotaSemItens         = errors.New("a nota fiscal deve conter pelo menos um item")
-	ErrNotaNaoAberta        = errors.New("apenas notas fiscais com status 'Aberta' podem ser impressas/finalizadas")
-	ErrQuantidadeInvalida   = errors.New("a quantidade do item deve ser maior que zero")
-	ErrPrecoInvalido        = errors.New("o preco unitario do item nao pode ser negativo")
-	ErrProdutoIdObrigatorio = errors.New("o codigo/ID do produto eh obrigatorio")
+	ErrNotaSemItens           = errors.New("a nota fiscal deve conter pelo menos um item")
+	ErrNotaNaoAberta          = errors.New("apenas notas fiscais com status 'Aberta' podem ser impressas/finalizadas")
+	ErrQuantidadeInvalida     = errors.New("a quantidade do item deve ser maior que zero")
+	ErrPrecoInvalido          = errors.New("o preco unitario do item nao pode ser negativo")
+	ErrProdutoIdObrigatorio   = errors.New("o codigo/ID do produto eh obrigatorio")
+	ErrProdutoDuplicadoNaNota = errors.New("nao e permitido incluir o mesmo produto mais de uma vez na mesma nota fiscal")
 )
 
 // NotaFiscal representa a entidade principal de Faturamento no SQL Server.
@@ -91,11 +92,22 @@ func (n *NotaFiscal) ValidateAndCalculate() error {
 		n.UUID = uuid.New().String()
 	}
 
+	seenCodigos := make(map[string]bool)
 	var total float64
 	for i := range n.Itens {
 		item := &n.Itens[i]
 		if item.ProdutoID <= 0 && item.CodigoProduto == "" {
 			return ErrProdutoIdObrigatorio
+		}
+		key := item.CodigoProduto
+		if key == "" && item.ProdutoID > 0 {
+			key = uuid.New().String()
+		}
+		if key != "" {
+			if seenCodigos[key] {
+				return ErrProdutoDuplicadoNaNota
+			}
+			seenCodigos[key] = true
 		}
 		if item.Quantidade <= 0 {
 			return ErrQuantidadeInvalida
