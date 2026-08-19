@@ -205,28 +205,99 @@
 
 ## Épico 5: Frontend Angular
 
-### Issue 12: Setup do Projeto e Arquitetura
-- **Descrição:** Estruturar a aplicação cliente.
-- **Stack:** Angular 17+ (Standalone Components).
+### Issue 12: Setup do Projeto, Arquitetura Standalone, Interceptors & SignalR Client - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Estruturar a aplicação cliente Angular 19+ utilizando Standalone Components, biblioteca visual, gerenciamento de serviços, interceptors HTTP globais (Correlation ID e Tratamento de Erros) e integração WebSocket com SignalR.
+- **Stack:** Angular 19+ (Standalone Components), RxJS, `@microsoft/signalr`, Lucide Icons, SCSS Design System.
 - **Tarefas:**
-  - Criar projeto via Angular CLI.
-  - Configurar biblioteca visual (ex: Angular Material ou PrimeNG) para os componentes visuais.
-  - Criar os services para comunicação HTTP com o API Gateway utilizando o ciclo de vida adequado (`ngOnInit`, `ngOnDestroy`).
-  - Implementar um `HttpInterceptor` global no Angular para interceptar respostas de erro (400 Bad Request, 500 Internal Server Error) vindas do YARP Gateway e exibir alertas amigáveis para o usuário na interface (utilizando os componentes da biblioteca visual escolhida).
+  - [x] Criar o projeto Angular standalone via Angular CLI na pasta `frontend` (`ng new` com roteamento e SCSS).
+  - [x] Configurar biblioteca de componentes visuais, ícones e sistema de design SCSS para formulários, dialogs, snackbars, toasters e tabelas responsivas.
+  - [x] Implementar o `CorrelationIdInterceptor` global no Angular para gerar/injetar o cabeçalho `X-Correlation-ID` (UUID v4) em todas as requisições HTTP enviadas ao API Gateway.
+  - [x] Implementar o `ErrorInterceptor` global para capturar respostas no padrão `ProblemDetails` / `ValidationProblemDetails` (HTTP 400 Bad Request e 500 Internal Server Error) vindas do YARP Gateway e exibir alertas amigáveis para o usuário na interface.
+  - [x] Criar o `SignalRService` injetável para gerenciar a conexão WebSocket com o API Gateway (`http://localhost:8080/hubs/notificacoes`), garantindo reconexão automática e limpeza de subscrições no ciclo de vida (`ngOnInit`/`ngOnDestroy`).
 
-### Issue 13: Telas de Cadastro (Produto e Nota Fiscal)
-- **Descrição:** Desenvolver as interfaces de usuário solicitadas.
+### Issue 13: Telas e Formulários Reativos (Produtos e Notas Fiscais) - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Desenvolver as interfaces de formulários reativos para cadastro e visualização em tempo real de Produtos e Notas Fiscais, além do Dashboard gerencial.
+- **Stack:** ReactiveFormsModule, FormBuilder, RxJS, SCSS Design System (Glassmorphism), Lucide/SVG Icons.
 - **Tarefas:**
-  - Criar tela "Cadastro de Produtos" (Inputs de Código, Descrição e Saldo).
-  - Criar tela "Cadastro de Notas Fiscais" com formulário reativo para permitir múltiplos itens na mesma nota.
+  - [x] Criar o componente `ProdutoCadastroComponent` (inputs validados de Código, Descrição e Saldo Inicial com sanitização numérica).
+  - [x] Criar o componente `ProdutoListComponent` para exibição reativa da tabela de produtos e saldos atualizados de estoque.
+  - [x] Criar o componente `NotaFiscalCadastroComponent` com formulário reativo flexível (`FormArray`) para permitir múltiplos itens na mesma nota fiscal.
+  - [x] Integrar seleção dinâmica de produtos cadastrados (`GET /api/produtos`) no formulário de notas fiscais com sincronização em tempo real de saldos via SignalR.
+  - [x] Garantir sincronização contínua entre o `FormControl` e o `<select>` do navegador, suportando cadastros consecutivos sem perda de seleção do produto.
+  - [x] Criar o componente `NotaFiscalListComponent` para visualização das notas fiscais com badges de status (`Aberta`, `EmProcessamento`, `Fechada`, `Cancelada`) e expansão detalhada de itens.
+  - [x] Criar o `DashboardComponent` com duas boards principais (Top 10 Produtos em estoque e Top 10 Notas Fiscais emitidas) com atualização reativa em tempo real.
+  - [x] Implementar normalização de envelopes de resposta da API de Faturamento (`{ success: true, data: [...] }`) e suporte bidirecional a campos `snake_case` e `camelCase`.
+  - [x] Implementar o `ThemeService` com suporte a Modo Claro (padrão) e Modo Escuro, aplicando a paleta oficial de valores da KORP ERP (Vermelho `#E60039`, Azul Marinho `#1E3A52`, Aço Cerúleo `#6B93B1` e Grafite `#36383A`), com botão de alternância suave no Navbar e persistência em `localStorage`.
 
-### Issue 14: Tela de Impressão e Reatividade
-- **Descrição:** Lidar com chamadas assíncronas e feedback visual.
-- **Stack:** RxJS.
+### Issue 14: Tela de Impressão, Transições de Estado (Saga) e Reatividade em Tempo Real (SignalR & RxJS) - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Implementar a ação de impressão/emissão de nota fiscal, controle de loading reativo, manipulação de streams com RxJS e consumo de eventos em tempo real via SignalR.
+- **Stack:** RxJS (`switchMap`, `catchError`, `tap`, `takeUntilDestroyed`), `@microsoft/signalr`.
 - **Tarefas:**
-  - Criar o botão "Imprimir Nota" em tela.
-  - Implementar o uso extensivo do RxJS (operadores como `switchMap`, `catchError`, `tap`) para gerenciar as chamadas e o loading spinner.
-  - Ouvir os eventos do SignalR para atualizar o status da nota (Aberta -> Fechada) e atualizar os saldos na interface.
+  - [x] Criar o botão "Imprimir Nota" acionando o endpoint `POST /api/v1/notas-fiscais/:id/imprimir` via YARP Gateway.
+  - [x] Alterar o status da nota imediatamente para `"EmProcessamento"` na interface e ativar indicador de carregamento/spinner reativo.
+  - [x] Utilizar operadores do RxJS (`switchMap`, `catchError`, `tap`, `takeUntilDestroyed`) para gerenciar as chamadas assíncronas e desinscrições no ciclo de vida.
+  - [x] Escutar os eventos do `SignalRService`:
+    - Evento `NotaFiscalAbatida`: Atualizar status da nota fiscal para `"Fechada"`, emitir alerta de sucesso e atualizar o saldo de estoque dos produtos na tabela e no formulário de cadastro.
+    - Evento `AbatimentoEstoqueFalhou`: Processar o retorno da Saga compensatória na UI, alterando o status da nota para `"Cancelada"` e exibindo Toast de erro detalhando o motivo (ex: Saldo Insuficiente).
+  - [x] Eliminar emissões duplicadas de SignalR no API Gateway (`NotaFiscalAbatidaConsumer` e `AbatimentoEstoqueFalhouConsumer`), garantindo exatamente 1 notificação por evento.
+  - [x] Aprimorar o `ErrorInterceptor` para traduzir e formatar amigavelmente erros de validação RFC 7807 (`ValidationProblemDetails`) do ASP.NET Core e erros de regras de negócio do Go.
+  - [x] Corrigir self-deadlock de Redlock no `NotaFiscalEmitidaConsumer` do Estoque (C#) através de travamento em chaves distintas e agregação de quantidades por produto.
+  - [x] Adicionar validação de unicidade de produtos por nota no backend (Go) e desativação visual automática no `<select>` do formulário para impedir inclusão de itens duplicados.
+  - [x] Implementar extração resiliente de payload e persistência de status no consumidor do Faturamento (`consumer.go` em Go), garantindo a transição definitiva para `"Cancelada"` no banco SQL Server durante a Saga compensatória sem reversões na UI.
+  - [x] Redesenhar o layout dos itens do formulário de Nota Fiscal em cards individuais com visualização completa dos produtos, espaçamento confortável e margens aprimoradas para botões e totalizadores.
+  - [x] Formatar o rótulo de status de `"EmProcessamento"` para `"Em Processamento"` em todos os componentes visuais para aprimorar a experiência do usuário (UX).
+
+### Issue 14.1: Containerização Docker (Nginx), Configuração de Ambiente e Health Check (Frontend) - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Preparar a aplicação cliente Angular 19+ para rodar em container Docker multi-stage com Nginx Alpine otimizado, suporte a SPA, WebSockets para SignalR, cabeçalhos de cache e integração total ao ecossistema `docker-compose.yml`.
+- **Stack:** Docker, Nginx Alpine, Angular CLI, Docker Compose.
+- **Tarefas:**
+  - [x] Criar o arquivo `Dockerfile` multi-stage (Stage 1: `node:20-alpine` para compilação; Stage 2: `nginx:alpine` para servir a aplicação).
+  - [x] Criar a configuração `nginx.conf` pré-configurada para roteamento SPA (`try_files`), suporte a WebSockets/SignalR (`Upgrade`/`Connection`), compressão `gzip` e endpoint `/health`.
+  - [x] Configurar os arquivos `environment.ts` e `environment.prod.ts` com o endpoint base do YARP API Gateway (`http://localhost:8080`).
+  - [x] Adicionar o serviço `frontend-web` no `docker-compose.yml` exposto na porta `4200:80` com `healthcheck` nativo e dependência resiliente do `gateway-api`.
+
+---
+
+## Épico 7: Infraestrutura Avançada, Observabilidade de Logs e Testes de Carga (k6)
+
+### Issue 16: Agregação Centralizada de Logs com Grafana Loki e Promtail - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Configurar a coleta centralizada de logs de todos os containers da solução (Estoque C#, Faturamento Go, Gateway YARP, Frontend Nginx, Redis, RabbitMQ e Bancos) usando Promtail e Grafana Loki.
+- **Stack:** Grafana Loki, Promtail, Docker Compose, LogQL.
+- **Tarefas:**
+  - [x] Configurar os serviços `loki` e `promtail` no `docker-compose.yml`.
+  - [x] Mapear o `/var/run/docker.sock` no Promtail com relabeling de labels Docker (`container`).
+  - [x] Configurar provisionamento automático da fonte de dados Loki no Grafana (`grafana/provisioning/datasources/loki.yml`).
+  - [x] Padronizar o rastreamento via `X-Correlation-ID` e `NotaFiscalId` nos logs estruturados do Serilog (C#) e `slog` (Go) para consultas LogQL no Grafana Explore.
+
+### Issue 18: Dashboard Automatizado no Grafana (KPIs de Saúde, Latência e Tempo de Processamento)
+- **Status:** ⏳ Em Andamento
+- **Descrição:** Provisionar automaticamente no Grafana um Dashboard executivo/técnico pré-configurado contendo gráficos de tempo médio de resposta por requisição, vazão (RPS), taxa de erro (%), tempo de processamento de emissão/abatimento de Nota Fiscal e status de saúde dos microsserviços.
+- **Stack:** Grafana Provisioning, Prometheus, Loki, JSON Dashboard Schema.
+- **Tarefas:**
+  - [ ] Criar o provedor de dashboards `grafana/provisioning/dashboards/dashboards.yml`.
+  - [ ] Criar o arquivo JSON de dashboard `grafana/dashboards/kpi-health-dashboard.json` com painéis de:
+    - Média de tempo de resposta por requisição (HTTP Latency - p50/p95/p99).
+    - Vazão de requisições por segundo (RPS) por endpoint e microsserviço.
+    - Taxa de Erros HTTP (4xx / 5xx).
+    - Tempo total de processamento da Nota Fiscal (Ciclo de Vida da máquina de estados e mensageria).
+    - Status de disponibilidade dos containers (`up`).
+  - [ ] Atualizar o `docker-compose.yml` montando os volumes do provedor e definições JSON de dashboards para carregamento automático ao iniciar o Grafana.
+
+### Issue 17: Testes de Carga, Estresse e Concorrência Distribuída com Grafana k6
+- **Status:** ⏳ Pendente
+- **Descrição:** Criar e executar scripts de teste de carga automatizados com **Grafana k6** para validar o desempenho dos microsserviços, a resiliência do API Gateway YARP, o controle de concorrência com Redlock e a idempotência do consumidor RabbitMQ, alimentando os gráficos do Grafana em tempo real.
+- **Stack:** Grafana k6, JavaScript/ES6, Docker.
+- **Tarefas:**
+  - [ ] Criar a pasta `k6/` no repositório com scripts de teste de carga:
+    - `k6/produtos-load-test.js`: Teste de carga e estresse nos endpoints REST de cadastro (`POST /api/produtos`) e consulta de produtos (`GET /api/produtos`).
+    - `k6/faturamento-concurrency-test.js`: Teste de alta concorrência simulando múltiplas emissões e impressões simultâneas de notas fiscais (`POST /api/v1/notas-fiscais` e `/imprimir`) utilizando o mesmo produto com estoque limitado para validar o Redlock e a Saga compensatória.
+  - [ ] Executar os testes de carga do k6 integrados ao ecossistema dockerizado para visualizar a alimentação dos dashboards do Grafana em tempo real e validar métricas de vazão (RPS), latência p95/p99 e taxa de erro.
+  - [ ] Documentar os cenários de testes k6 e os resultados obtidos no relatório final da solução.
 
 ---
 

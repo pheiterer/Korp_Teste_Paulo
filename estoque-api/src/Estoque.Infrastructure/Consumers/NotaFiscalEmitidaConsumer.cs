@@ -54,34 +54,44 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
 
         try
         {
-            // 2. Aquisição de Trava Distribuída (Redlock) ordenada por código do produto
-            var itensOrdenados = message.Itens.OrderBy(i => i.CodigoProduto).ToList();
-            foreach (var item in itensOrdenados)
+            // 2. Aquisição de Trava Distribuída (Redlock) em chaves DISTINTAS e ordenadas
+            var chavesDistintas = message.Itens
+                .Select(i => i.CodigoProduto.Trim().ToUpperInvariant())
+                .Distinct()
+                .OrderBy(c => c)
+                .ToList();
+
+            foreach (var codigoKey in chavesDistintas)
             {
-                var resourceKey = $"produto:{item.CodigoProduto.Trim().ToUpperInvariant()}";
+                var resourceKey = $"produto:{codigoKey}";
                 var lockObj = await _distributedLockService.AcquireLockAsync(resourceKey, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(5), context.CancellationToken);
 
                 if (lockObj == null)
                 {
-                    throw new InvalidOperationException($"Não foi possível adquirir a trava distribuída para o produto '{item.CodigoProduto}'.");
+                    throw new InvalidOperationException($"Não foi possível adquirir a trava distribuída para o produto '{codigoKey}'.");
                 }
 
                 locks.Add(lockObj);
             }
 
-            // 3. Processamento Atômico com Transação do Banco de Dados
+            // 3. Processamento Atômico com Transação do Banco de Dados (Agrupado por produto)
             await using var transaction = await _context.Database.BeginTransactionAsync(context.CancellationToken);
 
-            foreach (var item in message.Itens)
+            var itensAgrupados = message.Itens
+                .GroupBy(i => i.CodigoProduto.Trim().ToUpperInvariant())
+                .Select(g => new { CodigoKey = g.Key, OriginalCodigo = g.First().CodigoProduto, QuantidadeTotal = g.Sum(x => x.Quantidade) })
+                .ToList();
+
+            foreach (var item in itensAgrupados)
             {
-                var produto = await _produtoRepository.GetByCodigoAsync(item.CodigoProduto, context.CancellationToken);
+                var produto = await _produtoRepository.GetByCodigoAsync(item.OriginalCodigo, context.CancellationToken);
                 if (produto == null)
                 {
-                    throw new DomainException($"Produto com código '{item.CodigoProduto}' não foi encontrado no estoque.");
+                    throw new DomainException($"Produto com código '{item.OriginalCodigo}' não foi encontrado no estoque.");
                 }
 
-                // Debita o saldo (lança DomainException se saldo insuficiente)
-                produto.DebitarSaldo(item.Quantidade);
+                // Debita a soma total das quantidades do produto
+                produto.DebitarSaldo(item.QuantidadeTotal);
                 _produtoRepository.Update(produto);
             }
 
@@ -91,9 +101,9 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
             // Atualiza o saldo no Redis Cache
             if (_cacheService != null)
             {
-                foreach (var item in message.Itens)
+                foreach (var item in itensAgrupados)
                 {
-                    var p = await _produtoRepository.GetByCodigoAsync(item.CodigoProduto, context.CancellationToken);
+                    var p = await _produtoRepository.GetByCodigoAsync(item.OriginalCodigo, context.CancellationToken);
                     if (p != null)
                     {
                         await _cacheService.SetProdutoCacheAsync(p.Codigo, p.Descricao, p.Saldo, context.CancellationToken);
@@ -112,9 +122,9 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
 
             _logger.LogInformation("Estoque debitado com sucesso para a Nota Fiscal {NotaFiscalId} com CorrelationId {CorrelationId}.", message.NotaFiscalId, correlationId);
         }
-        catch (DomainException ex)
+        catch (Exception ex)
         {
-            _logger.LogError(ex, "Falha de regra de negócio ao debitar estoque para Nota Fiscal {NotaFiscalId} com CorrelationId {CorrelationId}. Publicando evento de falha.", message.NotaFiscalId, correlationId);
+            _logger.LogError(ex, "Falha ao debitar estoque para Nota Fiscal {NotaFiscalId} com CorrelationId {CorrelationId}. Publicando evento de falha.", message.NotaFiscalId, correlationId);
 
             // Publica evento de falha para acionar a Saga Compensatória no Faturamento
             await context.Publish(new AbatimentoEstoqueFalhouEvent(

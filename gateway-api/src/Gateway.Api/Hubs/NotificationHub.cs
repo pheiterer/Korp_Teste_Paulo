@@ -16,7 +16,6 @@ public class NotificationHub : Hub
     {
         var connectionId = Context.ConnectionId;
         _logger.LogInformation("Cliente SignalR conectado com ConnectionId '{ConnectionId}'.", connectionId);
-        await Clients.Caller.SendAsync("Conectado", new { connectionId, timestamp = DateTime.UtcNow });
         await base.OnConnectedAsync();
     }
 

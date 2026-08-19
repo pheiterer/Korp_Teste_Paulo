@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-      - master
-      - 'feature/**'
-      - '*[0-9]*'
   pull_request:
     branches:
       - main
@@ -14,7 +11,7 @@ on:
 
 jobs:
   build-angular:
-    name: Build Frontend (Angular)
+    name: Build & Test Frontend (Angular)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -25,15 +22,17 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Build Angular Frontend
+      - name: Build & Test Angular Frontend
         run: |
           if [ -d "frontend" ]; then
             cd frontend
             npm install
+            npm test -- --watch=false
             npm run build
           elif [ -d "src/frontend" ]; then
             cd src/frontend
             npm install
+            npm test -- --watch=false
             npm run build
           else
             echo "Diretório do Frontend Angular ainda não inicializado (Issue 12). Step ignorado."

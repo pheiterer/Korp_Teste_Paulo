@@ -76,6 +76,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // 7. Pipeline de Middlewares HTTP & WebSockets
+app.UseRouting();
 app.UseCors("AllowAll");
 app.UseWebSockets();
 

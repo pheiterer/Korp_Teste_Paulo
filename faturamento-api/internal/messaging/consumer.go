@@ -3,7 +3,9 @@ package messaging
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"faturamento-api/internal/domain"
@@ -19,19 +21,6 @@ const (
 	QueueFaturamentoStatusConfirmado = "faturamento-status-confirmado-queue"
 	QueueFaturamentoStatusFalhou     = "faturamento-status-falhou-queue"
 )
-
-type NotaFiscalAbatidaMessage struct {
-	NotaFiscalID string `json:"notaFiscalId"`
-}
-
-type AbatimentoEstoqueFalhouMessage struct {
-	NotaFiscalID string `json:"notaFiscalId"`
-	Motivo       string `json:"motivo"`
-}
-
-type GenericMassTransitEnvelope struct {
-	Message json.RawMessage `json:"message"`
-}
 
 type ConsumerService struct {
 	connURL string
@@ -97,13 +86,10 @@ func (c *ConsumerService) consumeConfirmationQueue(ctx context.Context) error {
 			if !ok {
 				return nil
 			}
-			var env GenericMassTransitEnvelope
-			if err := json.Unmarshal(d.Body, &env); err == nil {
-				var msg NotaFiscalAbatidaMessage
-				if err := json.Unmarshal(env.Message, &msg); err == nil && msg.NotaFiscalID != "" {
-					slog.Info("Recebida confirmacao de estoque abatido (NotaFiscalAbatidaEvent)", slog.String("uuid", msg.NotaFiscalID))
-					c.updateStatusByUUID(ctx, msg.NotaFiscalID, domain.StatusFechada)
-				}
+			idStr, _ := extractPayload(d.Body)
+			if idStr != "" {
+				slog.Info("Recebida confirmacao de estoque abatido (NotaFiscalAbatidaEvent)", slog.String("id_or_uuid", idStr))
+				c.updateStatusByIDOrUUID(ctx, idStr, domain.StatusFechada)
 			}
 		}
 	}
@@ -156,34 +142,76 @@ func (c *ConsumerService) consumeFailureQueue(ctx context.Context) error {
 			if !ok {
 				return nil
 			}
-			var env GenericMassTransitEnvelope
-			if err := json.Unmarshal(d.Body, &env); err == nil {
-				var msg AbatimentoEstoqueFalhouMessage
-				if err := json.Unmarshal(env.Message, &msg); err == nil && msg.NotaFiscalID != "" {
-					slog.Warn("Recebida FALHA de abatimento no estoque (AbatimentoEstoqueFalhouEvent) - Executando Saga Compensatoria",
-						slog.String("uuid", msg.NotaFiscalID),
-						slog.String("motivo", msg.Motivo),
-					)
-					c.updateStatusByUUID(ctx, msg.NotaFiscalID, domain.StatusCancelada)
-				}
+			idStr, motivo := extractPayload(d.Body)
+			if idStr != "" {
+				slog.Warn("Recebida FALHA de abatimento no estoque (AbatimentoEstoqueFalhouEvent) - Executando Saga Compensatoria",
+					slog.String("id_or_uuid", idStr),
+					slog.String("motivo", motivo),
+				)
+				c.updateStatusByIDOrUUID(ctx, idStr, domain.StatusCancelada)
 			}
 		}
 	}
 }
 
-func (c *ConsumerService) updateStatusByUUID(ctx context.Context, uuidStr string, status string) {
+func (c *ConsumerService) updateStatusByIDOrUUID(ctx context.Context, idOrUUID string, status string) {
 	if c.repo == nil {
 		return
 	}
-	nota, err := c.repo.FindByUUID(ctx, uuidStr)
+	var nota *domain.NotaFiscal
+	var err error
+
+	// 1. Tenta buscar por UUID
+	nota, err = c.repo.FindByUUID(ctx, idOrUUID)
+	if (err != nil || nota == nil) {
+		// 2. Tenta buscar por ID numérico
+		if idUint, parseErr := strconv.ParseUint(idOrUUID, 10, 64); parseErr == nil {
+			nota, err = c.repo.FindByID(ctx, uint(idUint))
+		}
+	}
+
 	if err != nil || nota == nil {
-		slog.Error("Nota fiscal nao encontrada para atualizar status via evento", slog.String("uuid", uuidStr))
+		slog.Error("Nota fiscal nao encontrada para atualizar status via evento", slog.String("id_or_uuid", idOrUUID))
 		return
 	}
 
 	if err := c.repo.UpdateStatus(ctx, nota.ID, status); err != nil {
-		slog.Error("Erro ao atualizar status da nota fiscal via evento", slog.String("uuid", uuidStr), slog.String("status", status), slog.String("error", err.Error()))
+		slog.Error("Erro ao atualizar status da nota fiscal via evento", slog.String("id_or_uuid", idOrUUID), slog.String("status", status), slog.String("error", err.Error()))
 	} else {
-		slog.Info("Status da nota fiscal atualizado via mensageria assincrona", slog.String("uuid", uuidStr), slog.String("status", status))
+		slog.Info("Status da nota fiscal atualizado via mensageria assincrona", slog.String("id_or_uuid", idOrUUID), slog.String("status", status))
 	}
+}
+
+func extractPayload(body []byte) (idStr string, motivo string) {
+	// 1. Tenta extrair de envelope MassTransit com campo "message"
+	var env struct {
+		Message map[string]interface{} `json:"message"`
+	}
+	if err := json.Unmarshal(body, &env); err == nil && env.Message != nil {
+		idStr = extractFromMap(env.Message, "notaFiscalId", "NotaFiscalId", "id", "Id", "uuid", "UUID")
+		motivo = extractFromMap(env.Message, "motivo", "Motivo", "reason", "Reason")
+		if idStr != "" {
+			return idStr, motivo
+		}
+	}
+
+	// 2. Tenta extrair diretamente da raiz do JSON
+	var rawMap map[string]interface{}
+	if err := json.Unmarshal(body, &rawMap); err == nil {
+		idStr = extractFromMap(rawMap, "notaFiscalId", "NotaFiscalId", "id", "Id", "uuid", "UUID")
+		motivo = extractFromMap(rawMap, "motivo", "Motivo", "reason", "Reason")
+	}
+	return idStr, motivo
+}
+
+func extractFromMap(m map[string]interface{}, keys ...string) string {
+	for _, k := range keys {
+		if v, ok := m[k]; ok && v != nil {
+			str := fmt.Sprintf("%v", v)
+			if str != "" && str != "<nil>" {
+				return str
+			}
+		}
+	}
+	return ""
 }

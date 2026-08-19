@@ -39,7 +39,6 @@ public class NotaFiscalAbatidaConsumer : IConsumer<NotaFiscalAbatidaEvent>
 
             // Envia mensagem via WebSockets (SignalR) para todos os clientes conectados
             await _hubContext.Clients.All.SendAsync("ReceberSucessoEstoque", notificationPayload, context.CancellationToken);
-            await _hubContext.Clients.All.SendAsync("ReceiveStockSuccess", notificationPayload, context.CancellationToken);
 
             _logger.LogInformation("Notificação de sucesso no estoque enviada via SignalR Hub para Nota Fiscal '{NotaFiscalId}'.", message.NotaFiscalId);
         }

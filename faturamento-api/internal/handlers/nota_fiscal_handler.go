@@ -35,9 +35,12 @@ type CreateNotaFiscalRequest struct {
 
 type CreateNotaFiscalItemRequest struct {
 	ProdutoID     int64   `json:"produto_id"`
+	ProdutoIDAlt  int64   `json:"produtoId"`
 	CodigoProduto string  `json:"codigo_produto"`
+	CodigoAlt     string  `json:"codigoProduto"`
 	Quantidade    int     `json:"quantidade" binding:"required,gt=0"`
-	PrecoUnitario float64 `json:"preco_unitario" binding:"required,gte=0"`
+	PrecoUnitario float64 `json:"preco_unitario"`
+	PrecoAlt      float64 `json:"precoUnitario"`
 }
 
 // CreateNotaFiscalHandler lida com a criacao de uma nova Nota Fiscal com status inicial 'Aberta'.
@@ -62,8 +65,15 @@ func (h *NotaFiscalHandler) CreateNotaFiscalHandler(c *gin.Context) {
 	if h.redis != nil && h.redis.IsConnected(c.Request.Context()) {
 		for _, itemReq := range req.Itens {
 			codigo := itemReq.CodigoProduto
-			if codigo == "" && itemReq.ProdutoID > 0 {
-				codigo = strconv.FormatInt(itemReq.ProdutoID, 10)
+			if codigo == "" {
+				codigo = itemReq.CodigoAlt
+			}
+			prodID := itemReq.ProdutoID
+			if prodID <= 0 {
+				prodID = itemReq.ProdutoIDAlt
+			}
+			if codigo == "" && prodID > 0 {
+				codigo = strconv.FormatInt(prodID, 10)
 			}
 			if codigo != "" {
 				_, err := h.redis.GetProduto(c.Request.Context(), codigo)
@@ -87,14 +97,25 @@ func (h *NotaFiscalHandler) CreateNotaFiscalHandler(c *gin.Context) {
 	domainItens := make([]domain.NotaFiscalItem, len(req.Itens))
 	for i, itemReq := range req.Itens {
 		codigo := itemReq.CodigoProduto
-		if codigo == "" && itemReq.ProdutoID > 0 {
-			codigo = strconv.FormatInt(itemReq.ProdutoID, 10)
+		if codigo == "" {
+			codigo = itemReq.CodigoAlt
+		}
+		prodID := itemReq.ProdutoID
+		if prodID <= 0 {
+			prodID = itemReq.ProdutoIDAlt
+		}
+		if codigo == "" && prodID > 0 {
+			codigo = strconv.FormatInt(prodID, 10)
+		}
+		preco := itemReq.PrecoUnitario
+		if preco == 0 && itemReq.PrecoAlt > 0 {
+			preco = itemReq.PrecoAlt
 		}
 		domainItens[i] = domain.NotaFiscalItem{
-			ProdutoID:     itemReq.ProdutoID,
+			ProdutoID:     prodID,
 			CodigoProduto: codigo,
 			Quantidade:    itemReq.Quantidade,
-			PrecoUnitario: itemReq.PrecoUnitario,
+			PrecoUnitario: preco,
 		}
 	}
 
