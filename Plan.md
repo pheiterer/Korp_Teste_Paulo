@@ -262,6 +262,45 @@
 
 ---
 
+## Épico 7: Infraestrutura Avançada, Observabilidade de Logs e Testes de Carga (k6)
+
+### Issue 16: Agregação Centralizada de Logs com Grafana Loki e Promtail - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Configurar a coleta centralizada de logs de todos os containers da solução (Estoque C#, Faturamento Go, Gateway YARP, Frontend Nginx, Redis, RabbitMQ e Bancos) usando Promtail e Grafana Loki.
+- **Stack:** Grafana Loki, Promtail, Docker Compose, LogQL.
+- **Tarefas:**
+  - [x] Configurar os serviços `loki` e `promtail` no `docker-compose.yml`.
+  - [x] Mapear o `/var/run/docker.sock` no Promtail com relabeling de labels Docker (`container`).
+  - [x] Configurar provisionamento automático da fonte de dados Loki no Grafana (`grafana/provisioning/datasources/loki.yml`).
+  - [x] Padronizar o rastreamento via `X-Correlation-ID` e `NotaFiscalId` nos logs estruturados do Serilog (C#) e `slog` (Go) para consultas LogQL no Grafana Explore.
+
+### Issue 18: Dashboard Automatizado no Grafana (KPIs de Saúde, Latência e Tempo de Processamento)
+- **Status:** ⏳ Em Andamento
+- **Descrição:** Provisionar automaticamente no Grafana um Dashboard executivo/técnico pré-configurado contendo gráficos de tempo médio de resposta por requisição, vazão (RPS), taxa de erro (%), tempo de processamento de emissão/abatimento de Nota Fiscal e status de saúde dos microsserviços.
+- **Stack:** Grafana Provisioning, Prometheus, Loki, JSON Dashboard Schema.
+- **Tarefas:**
+  - [ ] Criar o provedor de dashboards `grafana/provisioning/dashboards/dashboards.yml`.
+  - [ ] Criar o arquivo JSON de dashboard `grafana/dashboards/kpi-health-dashboard.json` com painéis de:
+    - Média de tempo de resposta por requisição (HTTP Latency - p50/p95/p99).
+    - Vazão de requisições por segundo (RPS) por endpoint e microsserviço.
+    - Taxa de Erros HTTP (4xx / 5xx).
+    - Tempo total de processamento da Nota Fiscal (Ciclo de Vida da máquina de estados e mensageria).
+    - Status de disponibilidade dos containers (`up`).
+  - [ ] Atualizar o `docker-compose.yml` montando os volumes do provedor e definições JSON de dashboards para carregamento automático ao iniciar o Grafana.
+
+### Issue 17: Testes de Carga, Estresse e Concorrência Distribuída com Grafana k6
+- **Status:** ⏳ Pendente
+- **Descrição:** Criar e executar scripts de teste de carga automatizados com **Grafana k6** para validar o desempenho dos microsserviços, a resiliência do API Gateway YARP, o controle de concorrência com Redlock e a idempotência do consumidor RabbitMQ, alimentando os gráficos do Grafana em tempo real.
+- **Stack:** Grafana k6, JavaScript/ES6, Docker.
+- **Tarefas:**
+  - [ ] Criar a pasta `k6/` no repositório com scripts de teste de carga:
+    - `k6/produtos-load-test.js`: Teste de carga e estresse nos endpoints REST de cadastro (`POST /api/produtos`) e consulta de produtos (`GET /api/produtos`).
+    - `k6/faturamento-concurrency-test.js`: Teste de alta concorrência simulando múltiplas emissões e impressões simultâneas de notas fiscais (`POST /api/v1/notas-fiscais` e `/imprimir`) utilizando o mesmo produto com estoque limitado para validar o Redlock e a Saga compensatória.
+  - [ ] Executar os testes de carga do k6 integrados ao ecossistema dockerizado para visualizar a alimentação dos dashboards do Grafana em tempo real e validar métricas de vazão (RPS), latência p95/p99 e taxa de erro.
+  - [ ] Documentar os cenários de testes k6 e os resultados obtidos no relatório final da solução.
+
+---
+
 ## Épico 6: Documentação e Entrega Final
 
 ### Issue 15: Relatório Técnico Final e Vídeo (Atualizada)
