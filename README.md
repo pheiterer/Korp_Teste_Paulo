@@ -1,17 +1,17 @@
 # 📦 Korp_Teste_Paulo - Sistema de Emissão de Notas Fiscais e Gestão de Estoque
 
-Este repositório contém a solução completa para o desafio técnico da **Korp**, desenvolvida em uma arquitetura de microsserviços poliglota altamente resiliente com **Angular 19+**, **C# (.NET 10)**, **Go (Golang)**, **YARP API Gateway**, **SignalR WebSockets**, **RabbitMQ**, **Redis**, **PostgreSQL** e **SQL Server**.
+Este repositório contém a solução completa para o desafio técnico da **Korp**, desenvolvida em uma arquitetura de microsserviços poliglota altamente resiliente com **Angular 21 (Standalone Components & Signals)**, **C# (.NET 10)**, **Go (Golang 1.24)**, **YARP API Gateway**, **SignalR WebSockets**, **RabbitMQ**, **Redis**, **PostgreSQL** e **SQL Server**.
 
 ---
 
 ## 🏛️ Visão Geral da Arquitetura
 
-O sistema foi desenhado seguindo os princípios de **Clean Architecture**, **Domain-Driven Design (DDD)**, **Event-Driven Architecture (EDA)**, **API Gateway Pattern**, **Saga Pattern (Transação Compensatória)** e **Observabilidade Distribuída**:
+O sistema foi desenhado seguindo os princípios de **Clean Architecture**, **Domain-Driven Design (DDD)**, **Event-Driven Architecture (EDA)**, **API Gateway Pattern**, **Saga Pattern (Transação Compensatória)**, **MassTransit Retry Policy** e **Observabilidade Distribuída**:
 
 ```mermaid
 flowchart TD
     subgraph Client["🖥️ Camada de Apresentação"]
-        Angular["Frontend Angular 19+ (Nginx SPA)<br/><b>Porta 4200</b><br/>• Standalone Components & Signals<br/>• Reatividade RxJS & Lucide Icons<br/>• Tema Claro / Escuro (Design System Korp)"]
+        Angular["Frontend Angular 21 (Nginx SPA)<br/><b>Porta 4200</b><br/>• Standalone Components, Templates HTML Externos & Signals<br/>• Reatividade RxJS & Lucide Icons<br/>• Tema Claro / Escuro (Design System Korp ERP)"]
     end
 
     subgraph GatewayLayer["🌐 Gateway & Comunicação em Tempo Real"]
@@ -19,7 +19,7 @@ flowchart TD
     end
 
     subgraph Services["⚙️ Microsserviços de Negócio"]
-        Estoque["Microsserviço de Estoque (C# .NET 10)<br/><b>Porta 8081 (Swagger)</b><br/>• Clean Architecture & DDD<br/>• MassTransit Consumer & Publisher<br/>• Redlock Distributed Lock<br/>• Idempotência Redis (TTL 7 dias)"]
+        Estoque["Microsserviço de Estoque (C# .NET 10)<br/><b>Porta 8081 (Swagger)</b><br/>• Clean Architecture & DDD<br/>• MassTransit Consumer & Retry Policy (3 tentativas)<br/>• Redlock Distributed Lock<br/>• Idempotência Redis (TTL 7 dias)"]
         Faturamento["Microsserviço de Faturamento (Go 1.24)<br/><b>Porta 8082 (Swagger)</b><br/>• Gin Web Framework & GORM<br/>• RabbitMQ AMQP Publisher/Consumer<br/>• Fail-Fast Redis Pre-Validation<br/>• Transação Compensatória (Saga Pattern)"]
     end
 
@@ -34,10 +34,10 @@ flowchart TD
     end
 
     subgraph Observability["📊 Stack de Observabilidade Centralizada"]
-        Prometheus["Prometheus (Porta 9090)<br/><i>Métricas de Runtime & Tráfego</i>"]
+        Prometheus["Prometheus (Porta 9090)<br/><i>Métricas HTTP & Runtime Go / .NET</i>"]
         Promtail["Promtail<br/><i>Coletor Docker Socket</i>"]
         Loki["Grafana Loki (Porta 3100)<br/><i>Agregador Central de Logs</i>"]
-        Grafana["Grafana Dashboard (Porta 3000)<br/><i>Visualização de Métricas & Logs</i>"]
+        Grafana["Grafana Dashboard (Porta 3000)<br/><i>KPIs de Latência, Hardware CPU/RAM & Auditoria</i>"]
     end
 
     %% Fluxo de Requisição Cliente & Gateway
@@ -80,12 +80,13 @@ Esta seção atende de forma explícita e aprofundada a todas as perguntas e req
 
 ### 1. Quais ciclos de vida do Angular foram utilizados?
 
-Na aplicação Frontend (desenvolvida com a versão mais recente do **Angular**, utilizando arquitetura moderna de **Standalone Components** e **Signals**):
+Na aplicação Frontend (desenvolvida na versão mais recente do **Angular**, utilizando arquitetura de **Standalone Components**, **Signals** e separação total de templates em arquivos `.component.html` externos):
 
 - **`ngOnInit`**: Utilizado para inicializar o estado dos componentes visuais, disparar as cargas reativas de dados iniciais (`carregarNotas()`, `carregarProdutos()`), subscrever a eventos assíncronos e registrar a escuta de eventos push do **SignalR WebSocket**.
 - **`ngOnDestroy` e `DestroyRef` (`takeUntilDestroyed`)**:
   - Utilizado no `SignalRService` para realizar o encerramento gracioso (*graceful shutdown*) da conexão WebSocket com o Hub do API Gateway (`stopConnection()`) quando o serviço for destruído.
   - Utilizado nos componentes de listagem e formulários através da injeção de `DestroyRef` combinada com o operador reativo moderno `takeUntilDestroyed(this.destroyRef)` do Angular, garantindo o cancelamento automático de subscrições aos Observables do RxJS e prevenindo vazamentos de memória (*memory leaks*).
+- **Separação Rigorosa de Arquivos HTML (`templateUrl`)**: Todos os 9 componentes Angular possuem arquivos `.component.html` e `.component.scss` dedicados, mantendo as classes TypeScript focadas exclusivamente na lógica de apresentação e gerenciamento de estado.
 - **Angular Signals & Modern Control Flow**: A aplicação adota a nova reatividade de alta performance do Angular com `signal()`, `computed()` e a sintaxe declarativa de fluxo de controle `@if`, `@for (track item.id)` e `@else`, eliminando a necessidade de diretivas legadas (`*ngIf`, `*ngFor`) e otimizando a detecção de mudanças.
 
 ---
@@ -109,16 +110,17 @@ Na aplicação Frontend (desenvolvida com a versão mais recente do **Angular**,
 3. **`@angular/forms` (`ReactiveFormsModule`, `FormBuilder`, `FormArray`, `Validators`)**: Construção de formulários reativos tipados, validações instantâneas de campos obrigatórios e criação dinâmica de múltiplos itens com quantidades em uma mesma nota fiscal através do `FormArray`.
 4. **`@angular/router`**: Gerenciamento de navegação cliente (SPA) com rotas standalone e lazy loading.
 5. **`@angular/common`**: Diretivas e pipes de formatação monetária brasileira (`CurrencyPipe` para `BRL R$`), formatação de texto e datas.
-6. **`vitest` & `jsdom`**: Framework moderno de testes unitários ultrarrápido configurado para a validação da camada de componentes e serviços do frontend.
+6. **`vitest` & `jsdom`**: Framework moderno de testes unitários ultrarrápido configurado para a validação da camada de componentes e serviços do frontend (19/19 testes aprovados).
 
 #### No Backend & Infraestrutura:
-- **`MassTransit.RabbitMQ` & `amqp091-go`**: Orquestração e publicação de mensagens e eventos orientados a domínio no RabbitMQ.
-- **`StackExchange.Redis` & `RedLock.net`**: Controle de travas distribuídas e controle de concorrência.
+- **`MassTransit.RabbitMQ` & `amqp091-go`**: Orquestração, mensageria e publicação de eventos de domínio no RabbitMQ.
+- **`StackExchange.Redis` & `RedLock.net`**: Controle de travas distribuídas (*Distributed Lock*) e verificação de idempotência.
 - **`go-redis/v9`**: Cliente de cache de alta performance no Go para validação *Fail-Fast* de produtos.
-- **`FluentValidation`**: Validação de contratos e regras de negócio com retorno RFC 7807.
-- **`Yarp.ReverseProxy`**: API Gateway de alta performance para proxy reverso e injeção de cabeçalhos distribuídos.
-- **`prometheus-net` & `client_golang`**: Exportadores de métricas de runtime para Prometheus.
-- **`Serilog` & `log/slog`**: Logging estruturado em formato JSON para envio ao Grafana Loki.
+- **`FluentValidation`**: Validação de contratos e regras de negócio com retorno RFC 7807 (`ProblemDetails`).
+- **`Yarp.ReverseProxy`**: API Gateway de alta performance para proxy reverso dinâmico e injeção do cabeçalho `X-Correlation-ID`.
+- **`prometheus-net` & `client_golang`**: Exportadores de métricas HTTP e runtime para coleta no Prometheus.
+- **`Serilog` & `log/slog`**: Logging estruturado em formato JSON com envio automatizado ao Grafana Loki.
+- **`Newman CLI` & `Grafana k6`**: Ferramentas automatizadas para suítes de testes E2E e testes de estresse/carga.
 
 ---
 
@@ -135,7 +137,7 @@ Na aplicação Frontend (desenvolvida com a versão mais recente do **Angular**,
   - **Componentes Visuais Modulares:**
     - *Dashboard de KPIs*: Contadores estatísticos com atualização em tempo real de produtos e faturamento.
     - *Formulários em Cards*: Inclusão intuitiva de múltiplos itens com totalizadores em tempo real e desativação inteligente de produtos já adicionados.
-    - *Tabelas Responsivas com Expansão*: Exibição de notas fiscais com linhas sanfonadas para detalhamento dos itens, cálculo de subtotais e badges de status coloridos.
+    - *Tabelas Responsivas com Expansão*: Exibição de notas fiscais com linhas sanfonadas para detalhamento dos itens, motivos de cancelamento formatados com marcadores (`•`) e badges de status coloridos.
     - *Sistema Central de Toasts (`ToastService` / `ToastContainerComponent`)*: Notificações push flutuantes para sucesso, aviso, erro de validação e alertas de transação compensatória com exibição do Correlation ID.
 
 ---
@@ -159,7 +161,7 @@ O gerenciamento de dependências no microsserviço de **Faturamento** foi realiz
 #### 🔵 Microsserviço de Estoque (C# .NET 10):
 - **ASP.NET Core 10 Web API**: Framework base de desenvolvimento de APIs REST de alto desempenho.
 - **Entity Framework Core 10 (`Npgsql.EntityFrameworkCore.PostgreSQL`)**: ORM de persistência no PostgreSQL com suporte a Migrations automáticas na inicialização.
-- **MassTransit 8.3.6**: Consumo assíncrono do evento `NotaFiscalEmitidaEvent` e publicação de eventos de sucesso (`NotaFiscalAbatidaEvent`) ou falha (`AbatimentoEstoqueFalhouEvent`).
+- **MassTransit 8.3.6**: Consumo assíncrono do evento `NotaFiscalEmitidaEvent`, suporte a **Política de Retry (3 tentativas em exceções transitórias de lock)** e publicação de eventos de sucesso (`NotaFiscalAbatidaEvent`) ou falha (`AbatimentoEstoqueFalhouEvent`).
 - **StackExchange.Redis & RedLock.net 2.3.2**: Gerenciamento de trava distribuída (*Distributed Lock*) e controle de idempotência.
 - **FluentValidation 12**: Validação de regras e contratos de entrada.
 - **NetArchTest.Rules**: *Fitness Functions* automatizadas garantindo os limites arquiteturais do DDD e Clean Architecture.
@@ -186,16 +188,15 @@ A solução adota uma estratégia em camadas para tratamento de erros síncronos
   - **Fail-Fast Cache Pre-Validation**: Antes de abrir transação no SQL Server para criar a nota fiscal, o serviço consulta o Redis (`produto:codigo:{codigo}`). Caso o produto não exista no catálogo, o Faturamento rejeita a requisição imediatamente com `HTTP 400 Bad Request` em sub-milissegundos.
 
 #### Tratamento de Falhas Assíncronas e Resiliência (Requisito Obrigatório #2 do PDF):
-1. **Cenário de Falha de Negócio (Saldo Insuficiente de Estoque)**:
-   - O usuário clica em "Imprimir Nota" no frontend Angular. O Faturamento altera o status da nota de `"Aberta"` para `"EmProcessamento"` e publica o evento `NotaFiscalEmitidaEvent` no RabbitMQ.
-   - O Microsserviço de Estoque consome o evento e adquire uma trava distribuída Redlock.
-   - Ao verificar o banco de dados PostgreSQL, detecta que o saldo é insuficiente para atender à nota.
-   - O Estoque aborta a transação, libera a trava e publica o evento **`AbatimentoEstoqueFalhouEvent`** na fila de falhas do RabbitMQ.
-   - O serviço de Faturamento consome este evento e executa a **Transação Compensatória (Saga Pattern)**, alterando o status da nota fiscal no SQL Server de `"EmProcessamento"` para `"Cancelada"`.
-   - Simultaneamente, o **API Gateway** consome o evento no RabbitMQ e envia um push via **SignalR WebSocket (`/hubs/notificacoes`)** diretamente para a interface do Angular, que exibe um Toast de erro em vermelho detalhando o motivo da falha.
-2. **Cenário de Queda de Infraestrutura (Microsserviço de Estoque Indisponível)**:
-   - Caso o container `estoque-api` esteja offline ou reiniciando no momento da emissão, a mensagem permanece armazenada de forma segura e durável nas filas persistentes do **RabbitMQ**.
-   - Assim que o serviço de Estoque volta a ficar ativo, a mensagem é consumida com garantia de entrega e processada normalmente, sem perda de dados e respeitando a trava de idempotência.
+1. **Política de Retentativas MassTransit (3 tentativas de Lock Redlock)**:
+   - No consumidor C# (`NotaFiscalEmitidaConsumer`), erros transitórios de obtenção de trava distribuída no Redis disparam um re-throw (`throw`) controlado quando `GetRetryCount() < 3`.
+   - O MassTransit re-executa a tentativa até 3 vezes com *backoff* antes de descartar a mensagem ou mover para a Dead Letter Queue (`_error`).
+2. **Cenário de Falha de Negócio (Saldo Insuficiente de Estoque)**:
+   - Ao consumir o evento de emissão, se o estoque PostgreSQL constatar saldo insuficiente, publica-se o evento **`AbatimentoEstoqueFalhouEvent`**.
+   - O Faturamento consome este evento e executa a **Transação Compensatória (Saga Pattern)**, alterando o status no SQL Server para `"Cancelada"` e gravando o motivo detalhado em `motivo_cancelamento`.
+   - O API Gateway envia uma notificação push via **SignalR WebSocket (`/hubs/notificacoes`)** para o Angular, que exibe o Toast de erro com o motivo formatado em marcadores.
+3. **Cenário de Queda de Infraestrutura (Microsserviço de Estoque Indisponível)**:
+   - Se o container `estoque-api` estiver offline, a mensagem permanece armazenada de forma durável nas filas do **RabbitMQ**. Ao retornar, o Estoque consome os eventos acumulados com garantia de idempotência.
 
 ---
 
@@ -238,10 +239,10 @@ A solução adota uma estratégia em camadas para tratamento de erros síncronos
 
 - **a. Tratamento de Concorrência**:
   - Implementado através do algoritmo de **Distributed Lock (Redlock)** sobre o Redis (`RedisLockService`).
-  - No cenário onde duas notas fiscais tentam abater simultaneamente o saldo de um produto com apenas 1 unidade em estoque, o Redlock força a execução sequencial estrita. A primeira nota adquire o lock, debita o saldo (reduzindo a 0) e conclui com sucesso. A segunda nota, ao adquirir o lock em seguida, detecta saldo insuficiente (0 < 1), falha de forma graciosa e aciona a Saga Compensatória (`Cancelada`).
+  - Em concorrência extrema de até 180 usuários simultâneos (VUs k6), o Redlock força a execução sequencial por chave de produto, garantindo integridade absoluta dos saldos no PostgreSQL.
 - **c. Implementação de Idempotência**:
   - Implementado via **Redis** (`RedisIdempotencyService`), gravando a chave `idempotency:nota:{NotaFiscalId}` com TTL de 7 dias.
-  - Impede que mensagens reentregues pelo RabbitMQ em virtude de reinicializações ou quedas de rede debitem o estoque de uma mesma nota fiscal mais de uma vez.
+  - Impede que reentregas de mensagens no RabbitMQ debitem o estoque de uma mesma nota fiscal mais de uma vez.
 
 ---
 
@@ -257,14 +258,14 @@ O sistema possui uma stack completa e unificada de monitoramento, roteamento e a
 | **Swagger Faturamento (Go)** | [http://localhost:8082/swagger](http://localhost:8082/swagger) | Documentação interativa da API REST de Faturamento |
 | **Swagger Estoque (C#)** | [http://localhost:8081/swagger](http://localhost:8081/swagger) | Documentação interativa da API REST de Estoque |
 | **RabbitMQ Management** | [http://localhost:15672](http://localhost:15672) *(guest/guest)* | Dashboard de mensageria assíncrona, filas, exchanges e bindings |
-| **Prometheus** | [http://localhost:9090](http://localhost:9090) | Coleta e consulta de métricas de runtime do Gateway e Microsserviços |
-| **Grafana Loki + Explore** | [http://localhost:3000](http://localhost:3000) *(admin/admin)* | Dashboard unificado de métricas e busca de logs estruturados em tempo real |
+| **Prometheus** | [http://localhost:9090](http://localhost:9090) | Coleta e consulta de métricas de runtime e tráfego |
+| **Grafana Dashboard** | [http://localhost:3000](http://localhost:3000) *(admin/admin)* | Painéis de Latência, Hardware (CPU & RAM), Taxa de Erros e Logs Loki |
 
-### 🔍 Rastreamento Distribuído por `X-Correlation-ID` e `UUID`:
-Todas as requisições que entram pelo Frontend recebem um `X-Correlation-ID` que é propagado pelo YARP Gateway e injetado nos logs e eventos do RabbitMQ. No Grafana Loki (aba **Explore** ➔ datasource **Loki**), execute a consulta abaixo para auditar o ciclo de vida completo de uma requisição entre todos os microsserviços:
-```logql
-{container=~"gateway-api|faturamento-api|estoque-api|frontend-web"} |= "SEU-CORRELATION-ID-OU-UUID"
-```
+### 📈 Painéis de Monitoramento de Hardware & KPIs no Grafana:
+O Grafana (`http://localhost:3000`) vem provisionado automaticamente com o dashboard **KPIs de Saúde do Sistema**:
+- **Monitoramento de Hardware (CPU & RAM):** Painéis gráficos lado a lado medindo o uso de CPU (%) e Memória RAM (Working Set / Memory Bytes) em tempo real dos serviços `gateway-api`, `faturamento-api` (Go) e `estoque-api` (C#).
+- **Métricas de Tráfego:** Latência p50/p95/p99, Vazão de Requisições (RPS) e Taxa de Erros HTTP (4xx / 5xx).
+- **Auditoria de Correlation ID & Logs Loki:** Tabela de auditoria com até 5.000 registros e data links diretos para o Grafana Loki.
 
 ---
 
@@ -276,7 +277,7 @@ Na raiz do repositório, execute:
 docker compose up -d --build
 ```
 Isso iniciará os 12 containers da solução com verificações de saúde automáticas (**`healthy`**):
-- `frontend-web` (Angular 19+ SPA no Nginx Alpine - Porta `4200`)
+- `frontend-web` (Angular 21 SPA no Nginx Alpine - Porta `4200`)
 - `gateway-api` (API Gateway YARP & SignalR - Porta `8080`)
 - `faturamento-api` (Go - Porta `8082`)
 - `estoque-api` (C# .NET 10 - Porta `8081`)
@@ -291,9 +292,9 @@ Isso iniciará os 12 containers da solução com verificações de saúde autom�
 
 ---
 
-### 2. Suíte de Testes Automatizados
+### 2. Suítes de Testes Automatizados
 
-- **Testes Unitários do Frontend (Angular):**
+- **Testes Unitários do Frontend (Angular 21 + Vitest):**
   ```bash
   cd frontend && npm test
   ```
@@ -303,17 +304,28 @@ Isso iniciará os 12 containers da solução com verificações de saúde autom�
   ```
 - **Testes em Go (Faturamento):**
   ```bash
-  cd faturamento-api && go test ./...
+  cd faturamento-api && go test -v ./...
   ```
 - **Testes em C# (Estoque - Unitários e Fitness Functions):**
   ```bash
-  dotnet test estoque-api/Estoque.slnx
+  dotnet test estoque-api/tests/Estoque.Tests.Unit/Estoque.Tests.Unit.csproj
+  dotnet test estoque-api/tests/Estoque.Tests.Architecture/Estoque.Tests.Architecture.csproj
+  ```
+- **Suíte Automatizada E2E (Newman / Postman CLI):**
+  ```bash
+  npm run test:e2e
+  ```
+- **Testes de Carga e Estresse (Grafana k6):**
+  ```bash
+  npm run test:k6
   ```
 
 ---
 
 ### 🧪 Coleção do Postman Pronta para Uso
-Arquivo na raiz: [`Korp_Teste_Paulo.postman_collection.json`](file:///home/pheit/Korp_Teste_Paulo/Korp_Teste_Paulo.postman_collection.json)
+- Arquivo E2E Master: [`tests/e2e/e2e_postman_collection.json`](file:///home/pheit/Korp_Teste_Paulo/tests/e2e/e2e_postman_collection.json)
+- Arquivo Gateway: [`gateway-api/Gateway_Postman_Collection.json`](file:///home/pheit/Korp_Teste_Paulo/gateway-api/Gateway_Postman_Collection.json)
+- Arquivo Faturamento: [`faturamento-api/Faturamento_Postman_Collection.json`](file:///home/pheit/Korp_Teste_Paulo/faturamento-api/Faturamento_Postman_Collection.json)
 
 ---
 
@@ -323,6 +335,7 @@ Arquivo na raiz: [`Korp_Teste_Paulo.postman_collection.json`](file:///home/pheit
 - [x] **Épico 2:** Microsserviço de Estoque (C# .NET 10 - Clean Architecture, Redlock, Idempotência, Fitness Functions)
 - [x] **Épico 3:** Microsserviço de Faturamento & Observabilidade (Go, GORM, RabbitMQ, Redis Fail-Fast, Prometheus, Grafana Loki, Saga Pattern)
 - [x] **Épico 4:** API Gateway YARP, SignalR WebSockets & Correlation ID Middleware
-- [x] **Épico 5:** Frontend Angular 19+ (Standalone Components, RxJS, SignalR Client, Design System KORP, Dark Mode)
-- [ ] **Épico 7:** Dashboards Automatizados de KPIs (Grafana) e Testes de Carga (k6)
-- [ ] **Épico 6:** Documentação Final e Gravação do Vídeo de Demonstração
+- [x] **Épico 5:** Frontend Angular 21 (Standalone Components, Templates HTML Externos, RxJS, SignalR Client, Design System KORP, Dark Mode)
+- [x] **Épico 6:** Suíte E2E Automatizada (Newman CLI) e Detalhamento de Cancelamento no Frontend
+- [x] **Épico 7:** Dashboards Automatizados de KPIs/Hardware (Grafana) e Suíte Completa de Testes de Carga (k6)
+- [ ] **Épico 8:** Relatório Técnico Final e Gravação do Vídeo de Demonstração
