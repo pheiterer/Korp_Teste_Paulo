@@ -323,9 +323,9 @@ Isso iniciará os 12 containers da solução com verificações de saúde autom�
 ---
 
 ### 🧪 Coleção do Postman Pronta para Uso
-- Arquivo E2E Master: [`tests/e2e/e2e_postman_collection.json`](file:///home/pheit/Korp_Teste_Paulo/tests/e2e/e2e_postman_collection.json)
-- Arquivo Gateway: [`gateway-api/Gateway_Postman_Collection.json`](file:///home/pheit/Korp_Teste_Paulo/gateway-api/Gateway_Postman_Collection.json)
-- Arquivo Faturamento: [`faturamento-api/Faturamento_Postman_Collection.json`](file:///home/pheit/Korp_Teste_Paulo/faturamento-api/Faturamento_Postman_Collection.json)
+- Arquivo E2E Master: [`tests/e2e/e2e_postman_collection.json`](./tests/e2e/e2e_postman_collection.json)
+- Arquivo Gateway: [`gateway-api/Gateway_Postman_Collection.json`](./gateway-api/Gateway_Postman_Collection.json)
+- Arquivo Faturamento: [`faturamento-api/Faturamento_Postman_Collection.json`](./faturamento-api/Faturamento_Postman_Collection.json)
 
 ---
 
