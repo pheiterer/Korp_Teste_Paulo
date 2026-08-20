@@ -117,10 +117,19 @@ jobs:
         run: |
           if [ -d "gateway-api" ]; then
             cd gateway-api
-            dotnet restore src/Gateway.Api/Gateway.Api.csproj
-            dotnet build src/Gateway.Api/Gateway.Api.csproj
-            if [ -d "tests/Gateway.Tests.Unit" ]; then
-              dotnet test tests/Gateway.Tests.Unit/Gateway.Tests.Unit.csproj --verbosity normal
+            if [ -f "Gateway.slnx" ]; then
+              dotnet restore Gateway.slnx
+              dotnet build Gateway.slnx
+              dotnet test Gateway.slnx --verbosity normal
+            else
+              dotnet restore src/Gateway.Api/Gateway.Api.csproj
+              dotnet build src/Gateway.Api/Gateway.Api.csproj
+              if [ -d "tests/Gateway.Tests.Unit" ]; then
+                dotnet test tests/Gateway.Tests.Unit/Gateway.Tests.Unit.csproj --verbosity normal
+              fi
+              if [ -d "tests/Gateway.Tests.Architecture" ]; then
+                dotnet test tests/Gateway.Tests.Architecture/Gateway.Tests.Architecture.csproj --verbosity normal
+              fi
             fi
           else
             echo "Diretório do API Gateway ainda não inicializado (Issue 10). Step ignorado."
