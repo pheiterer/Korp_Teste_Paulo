@@ -50,11 +50,11 @@ describe('NotaFiscalService', () => {
       ]
     };
 
-    service.getNotasFiscais().subscribe(data => {
-      expect(data.length).toBe(1);
-      expect(data[0].id).toBe(4);
-      expect(data[0].valorTotal).toBe(10);
-      expect(data[0].itens[0].codigoProduto).toBe('IDSKJADJ');
+    service.getNotasFiscais().subscribe(res => {
+      expect(res.items.length).toBe(1);
+      expect(res.items[0].id).toBe(4);
+      expect(res.items[0].valorTotal).toBe(10);
+      expect(res.items[0].itens[0].codigoProduto).toBe('IDSKJADJ');
       expect(service.notasFiscais().length).toBe(1);
       expect(service.notasFiscais()[0].valorTotal).toBe(10);
     });
