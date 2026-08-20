@@ -12,6 +12,8 @@ export interface NotaFiscalItem {
   precoUnitario?: number;
   subtotal?: number;
   valorTotal?: number;
+  motivo_erro?: string;
+  motivoErro?: string;
 }
 
 export interface CreateNotaFiscalItemRequest {
@@ -34,6 +36,8 @@ export interface NotaFiscal {
   numero_sequencial?: number;
   numeroSequencial?: number;
   status: NotaFiscalStatus;
+  motivo_cancelamento?: string;
+  motivoCancelamento?: string;
   valor_total?: number;
   valorTotal?: number;
   created_at?: string;

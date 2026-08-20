@@ -95,7 +95,20 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/handlers.APIResponse'
-      summary: Listar Notas Fiscais
+      summary: Listar Notas Fiscais com Paginação e Filtros
+      parameters:
+      - description: 'Número da página (padrão: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Quantidade de itens por página (padrão: 10, máx: 500)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Filtro por status (Aberta, EmProcessamento, Fechada, Cancelada)'
+        in: query
+        name: status
+        type: string
       tags:
       - Notas Fiscais
     post:

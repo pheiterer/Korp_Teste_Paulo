@@ -13,6 +13,7 @@ export class NotaFiscalService {
 
   readonly notasFiscais = signal<NotaFiscal[]>([]);
   readonly loading = signal<boolean>(false);
+  readonly pagination = signal<{ page: number; limit: number; total: number; total_pages: number } | null>(null);
 
   private normalizeNotaFiscal(item: any): NotaFiscal {
     return {
@@ -22,6 +23,8 @@ export class NotaFiscalService {
       numeroSequencial: item.numeroSequencial ?? item.numero_sequencial,
       numero_sequencial: item.numero_sequencial ?? item.numeroSequencial,
       status: item.status,
+      motivoCancelamento: item.motivoCancelamento ?? item.motivo_cancelamento,
+      motivo_cancelamento: item.motivo_cancelamento ?? item.motivoCancelamento,
       valorTotal: Number(item.valorTotal ?? item.valor_total ?? 0),
       valor_total: Number(item.valor_total ?? item.valorTotal ?? 0),
       created_at: item.created_at,
@@ -34,21 +37,35 @@ export class NotaFiscalService {
         quantidade: Number(it.quantidade || 0),
         precoUnitario: Number(it.precoUnitario ?? it.preco_unitario ?? 0),
         preco_unitario: Number(it.preco_unitario ?? it.precoUnitario ?? 0),
-        subtotal: Number(it.subtotal ?? (Number(it.quantidade || 0) * Number(it.preco_unitario ?? it.precoUnitario ?? 0)))
+        subtotal: Number(it.subtotal ?? (Number(it.quantidade || 0) * Number(it.preco_unitario ?? it.precoUnitario ?? 0))),
+        motivoErro: it.motivoErro || it.motivo_erro || '',
+        motivo_erro: it.motivo_erro || it.motivoErro || ''
       })) : []
     };
   }
 
-  getNotasFiscais(): Observable<NotaFiscal[]> {
+  getNotasFiscais(page: number = 1, limit: number = 10, status: string = ''): Observable<{ items: NotaFiscal[]; pagination?: any }> {
     this.loading.set(true);
-    return this.http.get<any>(this.apiUrl).pipe(
+    const params: any = { page: page.toString(), limit: limit.toString() };
+    if (status && status !== 'Todas') {
+      params.status = status;
+    }
+    return this.http.get<any>(this.apiUrl, { params }).pipe(
       map(res => {
-        const rawList = Array.isArray(res) ? res : (res?.data || []);
-        return rawList.map((item: any) => this.normalizeNotaFiscal(item));
+        const dataObj = res?.data;
+        const rawList = Array.isArray(res)
+          ? res
+          : (Array.isArray(dataObj) ? dataObj : (dataObj?.items || []));
+        const pagination = dataObj?.pagination || null;
+        const normalized = rawList.map((item: any) => this.normalizeNotaFiscal(item));
+        return { items: normalized, pagination };
       }),
       tap({
-        next: (data) => {
-          this.notasFiscais.set(data || []);
+        next: (result) => {
+          this.notasFiscais.set(result.items || []);
+          if (result.pagination) {
+            this.pagination.set(result.pagination);
+          }
           this.loading.set(false);
         },
         error: () => {
@@ -89,14 +106,19 @@ export class NotaFiscalService {
     );
   }
 
-  atualizarStatusNota(id: string | number, status: NotaFiscal['status']): void {
+  atualizarStatusNota(id: string | number, status: NotaFiscal['status'], motivo?: string): void {
     const targetStr = String(id || '').trim().toLowerCase();
     this.notasFiscais.update(list =>
       list.map(nota => {
         const notaIdStr = String(nota.id || '').trim().toLowerCase();
         const notaUuidStr = String(nota.uuid || '').trim().toLowerCase();
         if (notaIdStr === targetStr || (notaUuidStr && notaUuidStr === targetStr)) {
-          return { ...nota, status };
+          return {
+            ...nota,
+            status,
+            motivoCancelamento: motivo || nota.motivoCancelamento,
+            motivo_cancelamento: motivo || nota.motivo_cancelamento
+          };
         }
         return nota;
       })

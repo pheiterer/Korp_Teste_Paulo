@@ -151,7 +151,7 @@ public class NotaFiscalEmitidaConsumerTests
         // Assert
         produto.Saldo.Should().Be(10); // Não deve ter alterado
         _consumeContextMock.Verify(c => c.Publish(
-            It.Is<AbatimentoEstoqueFalhouEvent>(e => e.NotaFiscalId == notaFiscalId && e.Motivo.Contains("Saldo insuficiente")),
+            It.Is<AbatimentoEstoqueFalhouEvent>(e => e.NotaFiscalId == notaFiscalId && e.Motivo.Contains("saldo insuficiente", StringComparison.OrdinalIgnoreCase)),
             It.IsAny<CancellationToken>()
         ), Times.Once);
     }

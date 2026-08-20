@@ -20,7 +20,9 @@ type NotaFiscalRepository interface {
 	FindByID(ctx context.Context, id uint) (*domain.NotaFiscal, error)
 	FindByUUID(ctx context.Context, uuidStr string) (*domain.NotaFiscal, error)
 	FindAll(ctx context.Context) ([]domain.NotaFiscal, error)
+	FindAllPaginated(ctx context.Context, page, limit int, status string) ([]domain.NotaFiscal, int64, error)
 	UpdateStatus(ctx context.Context, id uint, status string) error
+	UpdateStatusWithMotivo(ctx context.Context, id uint, status string, motivo string) error
 	GetNextNumeroSequencial(ctx context.Context) (int64, error)
 }
 
@@ -90,24 +92,60 @@ func (r *gormNotaFiscalRepository) FindByUUID(ctx context.Context, uuidStr strin
 }
 
 func (r *gormNotaFiscalRepository) FindAll(ctx context.Context) ([]domain.NotaFiscal, error) {
+	notas, _, err := r.FindAllPaginated(ctx, 1, 100, "")
+	return notas, err
+}
+
+func (r *gormNotaFiscalRepository) FindAllPaginated(ctx context.Context, page, limit int, status string) ([]domain.NotaFiscal, int64, error) {
 	db, err := r.getDB()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 500 {
+		limit = 10
+	}
+
+	offset := (page - 1) * limit
+
+	query := db.WithContext(ctx).Model(&domain.NotaFiscal{})
+	if status != "" && status != "Todas" {
+		query = query.Where("status = ?", status)
+	}
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
 	var notas []domain.NotaFiscal
-	err = db.WithContext(ctx).Preload("Itens").Order("id DESC").Find(&notas).Error
+	err = query.Order("id DESC").Offset(offset).Limit(limit).Preload("Itens").Find(&notas).Error
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return notas, nil
+
+	return notas, total, nil
 }
 
 func (r *gormNotaFiscalRepository) UpdateStatus(ctx context.Context, id uint, status string) error {
+	return r.UpdateStatusWithMotivo(ctx, id, status, "")
+}
+
+func (r *gormNotaFiscalRepository) UpdateStatusWithMotivo(ctx context.Context, id uint, status string, motivo string) error {
 	db, err := r.getDB()
 	if err != nil {
 		return err
 	}
-	result := db.WithContext(ctx).Model(&domain.NotaFiscal{}).Where("id = ?", id).Update("status", status)
+	updates := map[string]interface{}{
+		"status": status,
+	}
+	if motivo != "" {
+		updates["motivo_cancelamento"] = motivo
+	}
+	result := db.WithContext(ctx).Model(&domain.NotaFiscal{}).Where("id = ?", id).Updates(updates)
 	if result.Error != nil {
 		return result.Error
 	}

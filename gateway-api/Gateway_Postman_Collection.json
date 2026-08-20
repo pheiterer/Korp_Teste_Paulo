@@ -1,0 +1,360 @@
+{
+	"info": {
+		"_postman_id": "c7d8e9f0-1a2b-3c4d-5e6f-7a8b9c0d1e2f",
+		"name": "API Gateway (YARP, WebSockets SignalR & Observabilidade)",
+		"description": "Collection do Postman para testar o API Gateway YARP em .NET 10, incluindo roteamento proxied para Estoque e Faturamento, endpoints de observabilidade, métricas Prometheus e Hub SignalR para WebSockets.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Observabilidade, Saúde & WebSockets Hub",
+			"item": [
+				{
+					"name": "1.1 Status Raiz do Gateway",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								""
+							]
+						},
+						"description": "Retorna o status do API Gateway YARP e SignalR Hub."
+					},
+					"response": []
+				},
+				{
+					"name": "1.2 Health Check do Gateway",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Endpoint de verificação de saúde nativa do Gateway."
+					},
+					"response": []
+				},
+				{
+					"name": "1.3 Métricas Prometheus Gateway",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/metrics",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"metrics"
+							]
+						},
+						"description": "Expõe métricas do Gateway em formato Prometheus."
+					},
+					"response": []
+				},
+				{
+					"name": "1.4 SignalR Negotiation (WebSockets)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/hubs/notificacoes/negotiate?negotiateVersion=1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"hubs",
+								"notificacoes",
+								"negotiate"
+							],
+							"query": [
+								{
+									"key": "negotiateVersion",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Endpoint de negociação de protocolo do SignalR Hub para conexões de cliente WebSockets."
+					},
+					"response": []
+				},
+				{
+					"name": "1.5 Teste de Correlation ID no Gateway",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-Correlation-ID",
+								"value": "gateway-postman-test-777",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Valida se o middleware do Gateway injeta e propaga o X-Correlation-ID nos cabeçalhos HTTP."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Reverse Proxy YARP - Roteamento Estoque (/api/produtos)",
+			"item": [
+				{
+					"name": "2.1 Proxy GET Listar Produtos",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/produtos",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"produtos"
+							]
+						},
+						"description": "Encaminha requisição GET para a estoque-api via YARP Proxy."
+					},
+					"response": []
+				},
+				{
+					"name": "2.2 Proxy POST Criar Produto",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"codigo\": \"PRD-GW-001\",\n  \"descricao\": \"Produto via Gateway YARP\",\n  \"saldoInicial\": 100\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/produtos",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"produtos"
+							]
+						},
+						"description": "Encaminha POST de cadastro de produto para o microsserviço de Estoque."
+					},
+					"response": []
+				},
+				{
+					"name": "2.3 Proxy GET Obter Produto por Código",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/produtos/codigo/PRD-GW-001",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"produtos",
+								"codigo",
+								"PRD-GW-001"
+							]
+						},
+						"description": "Obtém detalhes do produto pelo código via Gateway."
+					},
+					"response": []
+				},
+				{
+					"name": "2.4 Proxy GET Obter Produto por ID (GUID)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/produtos/00000000-0000-0000-0000-000000000000",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"produtos",
+								"00000000-0000-0000-0000-000000000000"
+							]
+						},
+						"description": "Obtém detalhes do produto pelo GUID via Gateway."
+					},
+					"response": []
+				},
+				{
+					"name": "2.5 Proxy Health Check Estoque Downstream",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health/estoque",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health",
+								"estoque"
+							]
+						},
+						"description": "Roteia a consulta de saúde diretamente para o microsserviço de Estoque."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Reverse Proxy YARP - Roteamento Faturamento (/api/v1/notas-fiscais)",
+			"item": [
+				{
+					"name": "3.1 Proxy GET Listar Notas Fiscais",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notas-fiscais",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notas-fiscais"
+							]
+						},
+						"description": "Encaminha GET para a faturamento-api via YARP Proxy."
+					},
+					"response": []
+				},
+				{
+					"name": "3.2 Proxy POST Criar Nota Fiscal",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"itens\": [\n    {\n      \"produto_id\": 1,\n      \"codigo_produto\": \"PRD-GW-001\",\n      \"quantidade\": 2,\n      \"preco_unitario\": 50.00\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notas-fiscais",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notas-fiscais"
+							]
+						},
+						"description": "Encaminha POST de criação de Nota Fiscal para a faturamento-api."
+					},
+					"response": []
+				},
+				{
+					"name": "3.3 Proxy GET Obter Nota Fiscal por ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notas-fiscais/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notas-fiscais",
+								"1"
+							]
+						},
+						"description": "Encaminha GET por ID de Nota Fiscal."
+					},
+					"response": []
+				},
+				{
+					"name": "3.4 Proxy POST Imprimir / Finalizar Nota Fiscal",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Correlation-ID",
+								"value": "postman-gw-flow-001",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notas-fiscais/1/imprimir",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notas-fiscais",
+								"1",
+								"imprimir"
+							]
+						},
+						"description": "Encaminha requisição de impressão de Nota Fiscal para a faturamento-api via Gateway."
+					},
+					"response": []
+				},
+				{
+					"name": "3.5 Proxy Health Check Faturamento Downstream",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health/faturamento",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health",
+								"faturamento"
+							]
+						},
+						"description": "Roteia a consulta de saúde diretamente para o microsserviço de Faturamento."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

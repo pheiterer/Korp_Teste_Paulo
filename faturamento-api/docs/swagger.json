@@ -30,7 +30,27 @@
                 "tags": [
                     "Notas Fiscais"
                 ],
-                "summary": "Listar Notas Fiscais",
+                "summary": "Listar Notas Fiscais com Paginação e Filtros",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Número da página (padrão: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Quantidade de itens por página (padrão: 10, máx: 500)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtro por status (Aberta, EmProcessamento, Fechada, Cancelada)",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -217,6 +237,37 @@
                 "success": {
                     "type": "boolean"
                 }
+            }
+        },
+        "domain.NotaFiscal": {
+            "type": "object",
+            "properties": {
+                "id": { "type": "integer" },
+                "uuid": { "type": "string" },
+                "numero_sequencial": { "type": "integer" },
+                "status": { "type": "string" },
+                "motivo_cancelamento": { "type": "string" },
+                "valor_total": { "type": "number" },
+                "itens": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/domain.NotaFiscalItem" }
+                },
+                "created_at": { "type": "string" },
+                "updated_at": { "type": "string" }
+            }
+        },
+        "domain.NotaFiscalItem": {
+            "type": "object",
+            "properties": {
+                "id": { "type": "integer" },
+                "nota_fiscal_id": { "type": "integer" },
+                "produto_id": { "type": "integer" },
+                "codigo_produto": { "type": "string" },
+                "quantidade": { "type": "integer" },
+                "preco_unitario": { "type": "number" },
+                "subtotal": { "type": "number" },
+                "motivo_erro": { "type": "string" },
+                "created_at": { "type": "string" }
             }
         },
         "handlers.ComponentHealth": {

@@ -264,9 +264,9 @@
 
 ## Épico 7: Dashboards Automatizados (Grafana) e Testes de Carga (k6)
 
-### Issue 18: Dashboard Automatizado no Grafana (KPIs de Saúde, Latência e Tempo de Processamento) - [✅ Concluído]
+### Issue 15: Dashboard Automatizado no Grafana (KPIs de Saúde, Latência e Tempo de Processamento) - [✅ Concluído]
 - **Status:** ✅ Concluído
-- **Descrição:** Provisionar automaticamente no Grafana um Dashboard executivo/técnico pré-configurado contendo gráficos de tempo médio de resposta por requisição, vazão (RPS), taxa de erro (%), tempo de processamento de emissão/abatimento de Nota Fiscal e status de saúde dos microsserviços.
+- **Descrição:** Provisionar automaticamente no Grafana um Dashboard executivo/técnico pré-configurado contendo gráficos de tempo médio de resposta por requisição, vazão (RPS), taxa de erro (%), tempo de processamento de emissão/abatimento de Nota Fiscal, consumo de hardware (CPU & RAM) e status de saúde dos microsserviços.
 - **Stack:** Grafana Provisioning, Prometheus, Loki, JSON Dashboard Schema.
 - **Tarefas:**
   - [x] Criar o provedor de dashboards `grafana/provisioning/dashboards/dashboards.yml`.
@@ -276,27 +276,47 @@
     - Taxa de Erros HTTP (4xx / 5xx).
     - Tempo total de processamento da Nota Fiscal (Ciclo de Vida da máquina de estados e mensageria).
     - Status de disponibilidade dos containers (`up`).
+    - **Monitoramento de Hardware (CPU & RAM):** Adicionados gráficos lado a lado medindo em tempo real a % de CPU e consumo de memória RAM (*Working Set / Memory Bytes*) de cada API (`gateway-api`, `faturamento-api` e `estoque-api`).
+    - **Agregação de Logs e Auditoria:** Filtragem dedicada no Loki com até 15 linhas para logs de erro/aviso (`ERROR|WARN`) e até 5.000 registros para auditoria de transações com Data Links direto ao Explore.
   - [x] Criar middleware de métricas no Faturamento em Go (`metrics.go`) para coletar `http_requests_received_total` e `http_request_duration_seconds` no mesmo padrão do C#.
   - [x] Implementar Tabela de Auditoria de Correlation ID com Data Links direto para o Explore no Grafana.
   - [x] Configurar o fluxo completo de Dead Letter Queue (`_error`), Fault Consumer no Gateway e conversor resiliente JSON (`TolerantIntConverter`) para garantir que mensagens com falhas críticas ou erros de payload cancelem a nota automaticamente e notifiquem o frontend via SignalR sem deixar o processo pendente.
   - [x] Atualizar o `docker/compose.observability.yml` montando os volumes do provedor e definições JSON de dashboards para carregamento automático ao iniciar o Grafana.
 
-### Issue 17: Testes de Carga, Estresse e Concorrência Distribuída com Grafana k6
-- **Status:** ⏳ Pendente
-- **Descrição:** Criar e executar scripts de teste de carga automatizados com **Grafana k6** para validar o desempenho dos microsserviços, a resiliência do API Gateway YARP, o controle de concorrência com Redlock e a idempotência do consumidor RabbitMQ, alimentando os gráficos do Grafana em tempo real.
-- **Stack:** Grafana k6, JavaScript/ES6, Docker.
+### Issue 16: Testes E2E Automatizados com Newman/Postman CLI e Detalhamento do Motivo de Cancelamento - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Desenvolver e integrar a suíte automatizada de testes E2E (End-to-End) cobrindo fluxos felizes, múltiplos itens por nota fiscal, transição de estado da Saga compensatória por falta de estoque e tratamento detalhado de erros por produto no backend (Go/SQL Server e C#/Postgres) e no frontend Angular.
+- **Stack:** Newman CLI, Postman Collection, Go (GORM), C# (.NET 10), Angular 19 (Signals & Standalone Components).
 - **Tarefas:**
-  - [ ] Criar a pasta `k6/` no repositório com scripts de teste de carga:
-    - `k6/produtos-load-test.js`: Teste de carga e estresse nos endpoints REST de cadastro (`POST /api/produtos`) e consulta de produtos (`GET /api/produtos`).
-    - `k6/faturamento-concurrency-test.js`: Teste de alta concorrência simulando múltiplas emissões e impressões simultâneas de notas fiscais (`POST /api/v1/notas-fiscais` e `/imprimir`) utilizando o mesmo produto com estoque limitado para validar o Redlock e a Saga compensatória.
-  - [ ] Executar os testes de carga do k6 integrados ao ecossistema dockerizado para visualizar a alimentação dos dashboards do Grafana em tempo real e validar métricas de vazão (RPS), latência p95/p99 e taxa de erro.
-  - [ ] Documentar os cenários de testes k6 e os resultados obtidos no relatório final da solução.
+  - [x] Criar a coleção Postman máster `tests/e2e/e2e_postman_collection.json` com 4 cenários de teste automatizados (Healthcheck, Múltiplos Itens, Cancelamento por Saga Compensatória e Validação de Erros de Negócio/HTTP 400).
+  - [x] Criar o script de execução automatizado `scripts/run-e2e.sh` e o atalho `npm run test:e2e` utilizando o `newman` (35/35 asserções aprovadas com 100% de sucesso).
+  - [x] Implementar a varredura e acúmulo de erros de estoque para múltiplos itens no consumidor C# (`NotaFiscalEmitidaConsumer`) e no backend Go (`faturamento-api`).
+  - [x] Persistir a coluna `motivo_cancelamento` na tabela `notas_fiscais` do SQL Server via GORM AutoMigrate.
+  - [x] Criar componente visual no Angular (`nota-fiscal-list.component`) com banner de alerta estilizado em vermelho exibindo os motivos de cancelamento formatados com marcadores (`•`), fonte monospaçada e espaçamento limpo.
+  - [x] Refatorar os 9 componentes Angular standalone extraindo todos os templates inline para arquivos `.component.html` e `.component.scss` externos para aderência rigorosa às boas práticas de arquitetura frontend.
+  - [x] Atualizar a documentação Swagger e validar os logs estruturados no Grafana Loki.
+
+### Issue 17: Testes de Carga, Estresse e Concorrência Distribuída com Grafana k6 - [✅ Concluído]
+- **Status:** ✅ Concluído
+- **Descrição:** Criar e executar scripts de teste de carga automatizados com **Grafana k6** para validar o desempenho dos microsserviços, a resiliência do API Gateway YARP, o controle de concorrência com Redlock e a idempotência do consumidor RabbitMQ, alimentando os gráficos do Grafana em tempo real.
+- **Stack:** Grafana k6, JavaScript/ES6, Docker, MassTransit Retry Policy.
+- **Tarefas:**
+  - [x] Criar a pasta `k6/` no repositório com 10 scripts de teste cobrindo todos os cenários de mercado:
+    - Validação de 0 itens (`01-valida-zero-itens.js`), Emissão normal de 2 itens (`02-emissao-padrao-2-itens.js`), Payload massivo de 100 itens (`03-carga-pesada-100-itens.js`).
+    - Validação de Idempotência (`04-idempotencia.js`), Concorrência Redlock (`05-concorrencia-estoque.js`), Falha parcial na Saga (`06-falha-parcial-saga.js`).
+    - Spike Test Black Friday (`07-spike-black-friday.js`), Soak Test de Sustentação (`08-soak-sustentacao.js`), SignalR WebSockets (`09-signalr-websockets.js`) e Consultas (`10-leitura-consultas.js`).
+    - Criar o orquestrador master `k6/gateway-stress-suite.js` e o script de execução `./scripts/run-k6.sh`.
+  - [x] **Política de Retentativa MassTransit (3 tentativas de Lock Redlock):** Implementar no consumidor C# (`NotaFiscalEmitidaConsumer`) o re-throw (`throw`) de exceções transitórias de travamento quando `GetRetryCount() < 3`, permitindo que o MassTransit re-tente processar a mensagem até 3 vezes via RabbitMQ antes de mover para DLQ e cancelar a nota.
+  - [x] **Distribuição Uniforme de Produtos:** Adicionar offset aleatório na geração de itens no helper do k6 (`helpers.js`) para distribuir as requisições uniformemente de `PROD-001` a `PROD-100`.
+  - [x] Executar os testes de carga do k6 integrados ao ecossistema dockerizado com 180 VUs máximos, obtendo **100% de sucesso nas asserções** (11.968/11.968 checks aprovados) e latência p95 de **219ms**.
+  - [x] Documentar os cenários de testes k6 e os resultados obtidos no relatório final da solução.
 
 ---
 
-## Épico 6: Documentação e Entrega Final
+## Épico 8: Documentação e Entrega Final
 
-### Issue 15: Relatório Técnico Final e Vídeo (Atualizada)
+### Issue 18: Relatório Técnico Final e Vídeo (Atualizada)
+- **Status:** ⏳ Pendente
 - **Descrição:** Criar o documento Markdown respondendo explicitamente aos novos requisitos inseridos pelo uso do Go e gravar o vídeo de demonstração.
 - **Tarefas:**
   - Escrever o arquivo Markdown final respondendo explicitamente a todas as perguntas e requisitos:

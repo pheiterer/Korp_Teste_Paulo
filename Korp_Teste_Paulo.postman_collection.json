@@ -2,10 +2,15 @@
 	"info": {
 		"_postman_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
 		"name": "Korp Teste Paulo - Master Postman Collection",
-		"description": "Collection completa do Postman com todos os microsserviços da solução (Estoque .NET 10 e Faturamento Go) estruturados com pastas e subpastas organizadas.",
+		"description": "Collection completa do Postman com todos os microsserviços da solução (Estoque .NET 10, Faturamento Go e API Gateway YARP com SignalR Hub e WebSockets) estruturados com pastas e subpastas organizadas.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
+		{
+			"key": "gatewayUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
 		{
 			"key": "estoqueUrl",
 			"value": "http://localhost:8081",
@@ -14,11 +19,6 @@
 		{
 			"key": "faturamentoUrl",
 			"value": "http://localhost:8082",
-			"type": "string"
-		},
-		{
-			"key": "gatewayUrl",
-			"value": "http://localhost:8080",
 			"type": "string"
 		}
 	],
@@ -348,7 +348,7 @@
 					]
 				},
 				{
-					"name": "2.2 Gestão de Notas Fiscais (Issue 9)",
+					"name": "2.2 Gestão de Notas Fiscais",
 					"item": [
 						{
 							"name": "2.2.1 Criar Nota Fiscal (Status Aberta)",
@@ -530,10 +530,10 @@
 			]
 		},
 		{
-			"name": "3. API Gateway YARP (.NET 10)",
+			"name": "3. API Gateway YARP & SignalR (C# .NET 10)",
 			"item": [
 				{
-					"name": "3.1 Observabilidade & Saúde do Gateway",
+					"name": "3.1 Observabilidade, Saúde & WebSockets",
 					"item": [
 						{
 							"name": "3.1.1 Gateway Status Raiz",
@@ -549,7 +549,7 @@
 										""
 									]
 								},
-								"description": "Retorna o status do API Gateway YARP."
+								"description": "Retorna o status do API Gateway YARP e SignalR Hub."
 							},
 							"response": []
 						},
@@ -567,7 +567,7 @@
 										"health"
 									]
 								},
-								"description": "Retorna a saúde nativa do Gateway."
+								"description": "Endpoint de verificação de saúde nativa do Gateway."
 							},
 							"response": []
 						},
@@ -585,7 +585,57 @@
 										"metrics"
 									]
 								},
-								"description": "Retorna as métricas do Gateway em formato Prometheus."
+								"description": "Expõe métricas do Gateway em formato Prometheus."
+							},
+							"response": []
+						},
+						{
+							"name": "3.1.4 SignalR Negotiation (WebSockets)",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{gatewayUrl}}/hubs/notificacoes/negotiate?negotiateVersion=1",
+									"host": [
+										"{{gatewayUrl}}"
+									],
+									"path": [
+										"hubs",
+										"notificacoes",
+										"negotiate"
+									],
+									"query": [
+										{
+											"key": "negotiateVersion",
+											"value": "1"
+										}
+									]
+								},
+								"description": "Endpoint de negociação do SignalR Hub para conexões WebSockets do frontend."
+							},
+							"response": []
+						},
+						{
+							"name": "3.1.5 Teste X-Correlation-ID no Gateway",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-Correlation-ID",
+										"value": "postman-gw-corr-999",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{gatewayUrl}}/health",
+									"host": [
+										"{{gatewayUrl}}"
+									],
+									"path": [
+										"health"
+									]
+								},
+								"description": "Valida que o Gateway injeta e preserva o X-Correlation-ID nos cabeçalhos HTTP."
 							},
 							"response": []
 						}
@@ -625,7 +675,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"codigo\": \"PROD-GW-001\",\n  \"descricao\": \"Notebook Dell via Gateway\",\n  \"saldo\": 15\n}"
+									"raw": "{\n  \"codigo\": \"PROD-GW-001\",\n  \"descricao\": \"Notebook Dell via Gateway\",\n  \"saldoInicial\": 15\n}"
 								},
 								"url": {
 									"raw": "{{gatewayUrl}}/api/produtos",
@@ -673,7 +723,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"itens\": [\n    {\n      \"codigoProduto\": \"PROD-GW-001\",\n      \"quantidade\": 2\n    }\n  ]\n}"
+									"raw": "{\n  \"itens\": [\n    {\n      \"produto_id\": 1,\n      \"codigo_produto\": \"PROD-GW-001\",\n      \"quantidade\": 2,\n      \"preco_unitario\": 50.00\n    }\n  ]\n}"
 								},
 								"url": {
 									"raw": "{{gatewayUrl}}/api/v1/notas-fiscais",

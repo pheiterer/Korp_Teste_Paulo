@@ -64,7 +64,7 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
             foreach (var codigoKey in chavesDistintas)
             {
                 var resourceKey = $"produto:{codigoKey}";
-                var lockObj = await _distributedLockService.AcquireLockAsync(resourceKey, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(5), context.CancellationToken);
+                var lockObj = await _distributedLockService.AcquireLockAsync(resourceKey, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(15), context.CancellationToken);
 
                 if (lockObj == null)
                 {
@@ -74,25 +74,44 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
                 locks.Add(lockObj);
             }
 
-            // 3. Processamento Atômico com Transação do Banco de Dados (Agrupado por produto)
-            await using var transaction = await _context.Database.BeginTransactionAsync(context.CancellationToken);
-
+            // 3. Validação e Processamento Atômico com Transação do Banco de Dados (Agrupado por produto)
             var itensAgrupados = message.Itens
                 .GroupBy(i => i.CodigoProduto.Trim().ToUpperInvariant())
                 .Select(g => new { CodigoKey = g.Key, OriginalCodigo = g.First().CodigoProduto, QuantidadeTotal = g.Sum(x => x.Quantidade) })
                 .ToList();
+
+            var erros = new List<string>();
+            var produtosParaDebitar = new List<(Estoque.Domain.Entities.Produto Produto, int QuantidadeTotal, string OriginalCodigo)>();
 
             foreach (var item in itensAgrupados)
             {
                 var produto = await _produtoRepository.GetByCodigoAsync(item.OriginalCodigo, context.CancellationToken);
                 if (produto == null)
                 {
-                    throw new DomainException($"Produto com código '{item.OriginalCodigo}' não foi encontrado no estoque.");
+                    erros.Add($"Item '{item.OriginalCodigo}': produto não encontrado no estoque.");
                 }
+                else if (produto.Saldo < item.QuantidadeTotal)
+                {
+                    erros.Add($"Item '{item.OriginalCodigo}': saldo insuficiente (solicitado: {item.QuantidadeTotal}, disponível: {produto.Saldo}).");
+                }
+                else
+                {
+                    produtosParaDebitar.Add((produto, item.QuantidadeTotal, item.OriginalCodigo));
+                }
+            }
 
-                // Debita a soma total das quantidades do produto
-                produto.DebitarSaldo(item.QuantidadeTotal);
-                _produtoRepository.Update(produto);
+            if (erros.Count > 0)
+            {
+                var motivoCompleto = $"Falha no estoque ({erros.Count} erro(s)): " + string.Join(" | ", erros);
+                throw new DomainException(motivoCompleto);
+            }
+
+            await using var transaction = await _context.Database.BeginTransactionAsync(context.CancellationToken);
+
+            foreach (var item in produtosParaDebitar)
+            {
+                item.Produto.DebitarSaldo(item.QuantidadeTotal);
+                _produtoRepository.Update(item.Produto);
             }
 
             await _produtoRepository.SaveChangesAsync(context.CancellationToken);
@@ -122,14 +141,30 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
 
             _logger.LogInformation("Estoque debitado com sucesso para a Nota Fiscal {NotaFiscalId} com CorrelationId {CorrelationId}.", message.NotaFiscalId, correlationId);
         }
-        catch (Exception ex)
+        catch (DomainException ex)
         {
-            _logger.LogError(ex, "Falha ao debitar estoque para Nota Fiscal {NotaFiscalId} com CorrelationId {CorrelationId}. Publicando evento de falha.", message.NotaFiscalId, correlationId);
+            _logger.LogWarning(ex, "Falha de regra de negócio ao debitar estoque para Nota Fiscal {NotaFiscalId} (CorrelationId {CorrelationId}). Publicando cancelamento.", message.NotaFiscalId, correlationId);
 
-            // Publica evento de falha para acionar a Saga Compensatória no Faturamento
             await context.Publish(new AbatimentoEstoqueFalhouEvent(
                 message.NotaFiscalId,
                 ex.Message,
+                DateTime.UtcNow
+            ), context.CancellationToken);
+        }
+        catch (Exception ex)
+        {
+            var retryCount = context.GetRetryCount();
+            if (retryCount < 3)
+            {
+                _logger.LogWarning(ex, "Tentativa {Attempt}/3 de débito de estoque falhou para Nota Fiscal {NotaFiscalId} (CorrelationId {CorrelationId}). Reenfileirando no RabbitMQ.", retryCount + 1, message.NotaFiscalId, correlationId);
+                throw;
+            }
+
+            _logger.LogError(ex, "Falha definitiva após 3 retentativas para Nota Fiscal {NotaFiscalId} (CorrelationId {CorrelationId}). Cancelando nota.", message.NotaFiscalId, correlationId);
+
+            await context.Publish(new AbatimentoEstoqueFalhouEvent(
+                message.NotaFiscalId,
+                $"Falha de concorrência/infraestrutura após 3 retentativas: {ex.Message}",
                 DateTime.UtcNow
             ), context.CancellationToken);
         }
