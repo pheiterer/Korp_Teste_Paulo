@@ -315,12 +315,23 @@
 
 ## Épico 8: Documentação e Entrega Final
 
-### Issue 18: Relatório Técnico Final e Vídeo (Atualizada)
+### Issue 18: Relatório Técnico Final, Vídeo de Demonstração e Pontos de Melhoria Futura - [⏳ Pendente]
 - **Status:** ⏳ Pendente
-- **Descrição:** Criar o documento Markdown respondendo explicitamente aos novos requisitos inseridos pelo uso do Go e gravar o vídeo de demonstração.
+- **Descrição:** Criar a documentação final da solução, gravar o vídeo demonstrativo de funcionalidades e resiliência, e registrar o roadmap de melhorias arquiteturais e funcionais futuras.
 - **Tarefas:**
-  - Escrever o arquivo Markdown final respondendo explicitamente a todas as perguntas e requisitos:
-    - Explicar como foi realizado o gerenciamento de dependências no Golang utilizando o `go mod`.
-    - Detalhar como foram tratados os erros e exceções no backend em Go (`if err != nil`).
-    - Manter as explicações sobre os ciclos de vida do Angular, bibliotecas visuais, RxJS e a utilização do LINQ no Serviço de Estoque em C#.
-  - Gravar o vídeo demonstrando: Telas, Cadastro, Impressão, o Dashboard do Grafana, e a simulação de desligar o container do Estoque para mostrar a mensagem enfileirada e o sistema não caindo (Tratamento de Falhas).
+  - [ ] **Relatório Técnico Final & Documentação:**
+    - Consolidar as respostas do arquivo de especificação (`c_ou_go_+_angular.pdf`): gerenciamento de dependências no Go (`go mod`), tratamento idiomático de erros (`if err != nil`), uso do RxJS, ciclos de vida do Angular 21, LINQ no C# e observabilidade.
+  - [ ] **Vídeo de Demonstração Prática:**
+    - Gravar demonstração das telas (Produtos, Notas Fiscais, Dashboard e Modo Escuro).
+    - Demonstrar a impressão de notas com transição de status em tempo real via SignalR WebSockets.
+    - Exibir o Dashboard do Grafana com métricas de tempo de resposta, vazão (RPS) e gráficos de consumo de hardware (CPU & RAM).
+    - Demonstrar o **Tratamento de Falhas e Resiliência**: desligar o container `estoque-api`, emitir uma nota fiscal mostrando a mensagem retida com segurança no RabbitMQ, e religar o container para comprovar o consumo sem perda de dados.
+  - [ ] **Pontos de Melhorias Futuras & Evoluções (Roadmap Técnico):**
+    - **CRUD Completo de Produtos:** Expandir a API de Estoque com endpoints de alteração (`PUT /api/produtos/{codigo}`) e exclusão/inativação lógica com verificação de saldo residual e notas vinculadas.
+    - **Paginação Avançada & Ordenação Dinâmica:** Estender o suporte de paginação server-side (`page`, `limit`, `sort`) do Faturamento para os endpoints de consulta de Produtos no Estoque.
+    - **Integração com Inteligência Artificial (Opcional b do PDF):**
+      - *Previsão de Demanda de Estoque (Stock Demand Forecasting):* Modelo de IA/Machine Learning para analisar o histórico de emissões e prever datas de esgotamento de saldo por produto.
+      - *Assistente IA Copilot na UI:* Chatbot integrado em linguagem natural para responder dúvidas de faturamento e relatórios de estoque ("Quais produtos atingirão saldo crítico nos próximos 3 dias?").
+    - **Ajuste e Otimização do Refresh da Página (F5):** Implementar persistência de estado das tabelas e filtros via `sessionStorage`/URL query params, além de reconexão transparente do SignalR WebSocket no reload da página sem perda de contexto visual.
+    - **Autenticação, Autorização e Segurança (JWT & RBAC):** Implementar controle de acesso baseado em perfis (Estoquista, Faturista, Administrador) com validação de tokens JWT no YARP API Gateway.
+    - **Alertas Automatizados de Observabilidade (Grafana Alerting):** Configurar regras de alerta via Slack/Webhook para picos de latência (p95 > 500ms), taxa de erros HTTP (5xx > 1%) ou queda de conexões com o banco de dados.
