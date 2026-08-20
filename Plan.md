@@ -207,8 +207,8 @@
 
 ### Issue 12: Setup do Projeto, Arquitetura Standalone, Interceptors & SignalR Client - [✅ Concluído]
 - **Status:** ✅ Concluído
-- **Descrição:** Estruturar a aplicação cliente Angular 19+ utilizando Standalone Components, biblioteca visual, gerenciamento de serviços, interceptors HTTP globais (Correlation ID e Tratamento de Erros) e integração WebSocket com SignalR.
-- **Stack:** Angular 19+ (Standalone Components), RxJS, `@microsoft/signalr`, Lucide Icons, SCSS Design System.
+- **Descrição:** Estruturar a aplicação cliente Angular 21 utilizando Standalone Components, biblioteca visual, gerenciamento de serviços, interceptors HTTP globais (Correlation ID e Tratamento de Erros) e integração WebSocket com SignalR.
+- **Stack:** Angular 21 (Standalone Components), RxJS, `@microsoft/signalr`, Lucide Icons, SCSS Design System.
 - **Tarefas:**
   - [x] Criar o projeto Angular standalone via Angular CLI na pasta `frontend` (`ng new` com roteamento e SCSS).
   - [x] Configurar biblioteca de componentes visuais, ícones e sistema de design SCSS para formulários, dialogs, snackbars, toasters e tabelas responsivas.
@@ -252,7 +252,7 @@
 
 ### Issue 14.1: Containerização Docker (Nginx), Configuração de Ambiente e Health Check (Frontend) - [✅ Concluído]
 - **Status:** ✅ Concluído
-- **Descrição:** Preparar a aplicação cliente Angular 19+ para rodar em container Docker multi-stage com Nginx Alpine otimizado, suporte a SPA, WebSockets para SignalR, cabeçalhos de cache e integração total ao ecossistema `docker-compose.yml`.
+- **Descrição:** Preparar a aplicação cliente Angular 21 para rodar em container Docker multi-stage com Nginx Alpine otimizado, suporte a SPA, WebSockets para SignalR, cabeçalhos de cache e integração total ao ecossistema `docker-compose.yml`.
 - **Stack:** Docker, Nginx Alpine, Angular CLI, Docker Compose.
 - **Tarefas:**
   - [x] Criar o arquivo `Dockerfile` multi-stage (Stage 1: `node:20-alpine` para compilação; Stage 2: `nginx:alpine` para servir a aplicação).
@@ -286,7 +286,7 @@
 ### Issue 16: Testes E2E Automatizados com Newman/Postman CLI e Detalhamento do Motivo de Cancelamento - [✅ Concluído]
 - **Status:** ✅ Concluído
 - **Descrição:** Desenvolver e integrar a suíte automatizada de testes E2E (End-to-End) cobrindo fluxos felizes, múltiplos itens por nota fiscal, transição de estado da Saga compensatória por falta de estoque e tratamento detalhado de erros por produto no backend (Go/SQL Server e C#/Postgres) e no frontend Angular.
-- **Stack:** Newman CLI, Postman Collection, Go (GORM), C# (.NET 10), Angular 19 (Signals & Standalone Components).
+- **Stack:** Newman CLI, Postman Collection, Go (GORM), C# (.NET 10), Angular 21 (Signals & Standalone Components).
 - **Tarefas:**
   - [x] Criar a coleção Postman máster `tests/e2e/e2e_postman_collection.json` com 4 cenários de teste automatizados (Healthcheck, Múltiplos Itens, Cancelamento por Saga Compensatória e Validação de Erros de Negócio/HTTP 400).
   - [x] Criar o script de execução automatizado `scripts/run-e2e.sh` e o atalho `npm run test:e2e` utilizando o `newman` (35/35 asserções aprovadas com 100% de sucesso).
