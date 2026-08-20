@@ -12,14 +12,14 @@ echo "URL do Gateway: ${GATEWAY_URL}"
 echo "Cenário Selecionado: ${SCENARIO}"
 echo "===================================================="
 
-# Seeding de produtos com saldo inicial reduzido (50 unidades) para forçar esgotamento e cancelamento via Saga
-echo "🌱 Inicializando/semeando produtos de teste (PROD-001 a PROD-100) com saldo de 50 unidades..."
+# Seeding de produtos com saldo inicial robusto (50.000 unidades) para suportar os testes de estresse concorrentes
+echo "🌱 Inicializando/semeando produtos de teste (PROD-001 a PROD-100) com saldo de 50.000 unidades..."
 for i in $(seq -f "%03g" 1 100); do
     curl -s -X POST "${GATEWAY_URL}/api/produtos" \
         -H "Content-Type: application/json" \
-        -d "{\"codigo\":\"PROD-$i\",\"descricao\":\"Produto Teste $i\",\"saldoInicial\":50}" > /dev/null || true
+        -d "{\"codigo\":\"PROD-$i\",\"descricao\":\"Produto Teste $i\",\"saldoInicial\":50000}" > /dev/null || true
 done
-echo "✅ 100 produtos cadastrados/garantidos com saldo de 50 unidades cada!"
+echo "✅ 100 produtos cadastrados/garantidos com saldo de 50.000 unidades cada!"
 
 if [[ "${SCENARIO}" == "suite" || "${SCENARIO}" == "all" ]]; then
     echo "▶️  Executando Suíte Completa (k6/gateway-stress-suite.js)..."

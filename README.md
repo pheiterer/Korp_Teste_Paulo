@@ -157,6 +157,7 @@ O gerenciamento de dependências no microsserviço de **Faturamento** foi realiz
 - **YARP (Yet Another Reverse Proxy - `Yarp.ReverseProxy` 2.3.0)**: Roteamento inteligente de requisições, balanceamento e propagação do cabeçalho `X-Correlation-ID`.
 - **ASP.NET Core SignalR (`Microsoft.AspNetCore.SignalR`)**: Servidor de WebSockets para notificações push em tempo real para o Frontend.
 - **MassTransit 8.3.6 (`MassTransit.RabbitMQ`)**: Consumo de eventos de integração do RabbitMQ e disparo imediato de notificações no Hub SignalR.
+- **NetArchTest.Rules**: *Fitness Functions* automatizadas garantindo convenções de Consumers, Hubs, Middlewares e limites de arquitetura.
 
 #### 🔵 Microsserviço de Estoque (C# .NET 10):
 - **ASP.NET Core 10 Web API**: Framework base de desenvolvimento de APIs REST de alto desempenho.
@@ -172,6 +173,7 @@ O gerenciamento de dependências no microsserviço de **Faturamento** foi realiz
 - **RabbitMQ AMQP 0-9-1 Client (`github.com/rabbitmq/amqp091-go`)**: Publicação de notas fiscais emitidas e consumo de eventos de resposta (Saga compensatória).
 - **Go-Redis Client (`github.com/redis/go-redis/v9`)**: Cache distribuído para validação rápida (*Fail-Fast*) de produtos.
 - **Swaggo (`swaggo/swag` & `gin-swagger`)**: Geração automática de documentação Swagger / OpenAPI interativa.
+- **AST Architecture Analyzer (`go/parser` & `go/ast`)**: *Fitness Functions* nativas em Go validando os limites de arquitetura limpa (independência do Domain, desacoplamento de repositórios e mensageria).
 
 ---
 
@@ -298,11 +300,12 @@ Isso iniciará os 12 containers da solução com verificações de saúde autom�
   ```bash
   cd frontend && npm test
   ```
-- **Testes do API Gateway & SignalR (C#):**
+- **Testes do API Gateway (C# - Unitários e Fitness Functions):**
   ```bash
   dotnet test gateway-api/tests/Gateway.Tests.Unit/Gateway.Tests.Unit.csproj
+  dotnet test gateway-api/tests/Gateway.Tests.Architecture/Gateway.Tests.Architecture.csproj
   ```
-- **Testes em Go (Faturamento):**
+- **Testes em Go (Faturamento - Unitários e Fitness Functions):**
   ```bash
   cd faturamento-api && go test -v ./...
   ```
@@ -366,5 +369,5 @@ Estes pontos foram documentados como sugestões de evoluções técnicas e funci
 - [x] **Épico 5:** Frontend Angular 21 (Standalone Components, Templates HTML Externos, RxJS, SignalR Client, Design System KORP, Dark Mode)
 - [x] **Épico 6:** Suíte E2E Automatizada (Newman CLI) e Detalhamento de Cancelamento no Frontend
 - [x] **Épico 7:** Dashboards Automatizados de KPIs/Hardware (Grafana) e Suíte Completa de Testes de Carga (k6)
-- [ ] **Épico 8:** Relatório Técnico Final e Gravação do Vídeo de Demonstração
+- [x] **Épico 8:** Relatório Técnico Final e Gravação do Vídeo de Demonstração
 

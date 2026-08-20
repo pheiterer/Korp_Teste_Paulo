@@ -154,13 +154,13 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
         catch (Exception ex)
         {
             var retryCount = context.GetRetryCount();
-            if (retryCount < 3)
+            if (retryCount < 2)
             {
                 _logger.LogWarning(ex, "Tentativa {Attempt}/3 de débito de estoque falhou para Nota Fiscal {NotaFiscalId} (CorrelationId {CorrelationId}). Reenfileirando no RabbitMQ.", retryCount + 1, message.NotaFiscalId, correlationId);
                 throw;
             }
 
-            _logger.LogError(ex, "Falha definitiva após 3 retentativas para Nota Fiscal {NotaFiscalId} (CorrelationId {CorrelationId}). Cancelando nota.", message.NotaFiscalId, correlationId);
+            _logger.LogError(ex, "Falha definitiva após 3 retentativas para Nota Fiscal {NotaFiscalId} (CorrelationId {CorrelationId}). Cancelando nota via Saga.", message.NotaFiscalId, correlationId);
 
             await context.Publish(new AbatimentoEstoqueFalhouEvent(
                 message.NotaFiscalId,
