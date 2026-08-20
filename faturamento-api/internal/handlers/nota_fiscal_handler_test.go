@@ -56,8 +56,21 @@ func (m *MockRepository) FindAll(ctx context.Context) ([]domain.NotaFiscal, erro
 	return args.Get(0).([]domain.NotaFiscal), args.Error(1)
 }
 
+func (m *MockRepository) FindAllPaginated(ctx context.Context, page, limit int, status string) ([]domain.NotaFiscal, int64, error) {
+	args := m.Called(ctx, page, limit, status)
+	if args.Get(0) == nil {
+		return nil, 0, args.Error(2)
+	}
+	return args.Get(0).([]domain.NotaFiscal), args.Get(1).(int64), args.Error(2)
+}
+
 func (m *MockRepository) UpdateStatus(ctx context.Context, id uint, status string) error {
 	args := m.Called(ctx, id, status)
+	return args.Error(0)
+}
+
+func (m *MockRepository) UpdateStatusWithMotivo(ctx context.Context, id uint, status string, motivo string) error {
+	args := m.Called(ctx, id, status, motivo)
 	return args.Error(0)
 }
 
@@ -297,7 +310,7 @@ func TestListNotasFiscaisHandler_Sucesso(t *testing.T) {
 		{ID: 2, UUID: "uuid-2", Status: domain.StatusFechada},
 	}
 
-	mockRepo.On("FindAll", mock.Anything).Return(notas, nil)
+	mockRepo.On("FindAllPaginated", mock.Anything, 1, 10, "").Return(notas, int64(len(notas)), nil)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/api/v1/notas-fiscais", nil)
@@ -307,5 +320,6 @@ func TestListNotasFiscaisHandler_Sucesso(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), `"uuid-1"`)
 	assert.Contains(t, w.Body.String(), `"uuid-2"`)
+	assert.Contains(t, w.Body.String(), `"pagination"`)
 	mockRepo.AssertExpectations(t)
 }

@@ -294,15 +294,17 @@
   - [x] Atualizar a documentação Swagger e validar os logs estruturados no Grafana Loki.
 
 ### Issue 17: Testes de Carga, Estresse e Concorrência Distribuída com Grafana k6
-- **Status:** ⏳ Pendente
+- **Status:** ✅ Concluído
 - **Descrição:** Criar e executar scripts de teste de carga automatizados com **Grafana k6** para validar o desempenho dos microsserviços, a resiliência do API Gateway YARP, o controle de concorrência com Redlock e a idempotência do consumidor RabbitMQ, alimentando os gráficos do Grafana em tempo real.
 - **Stack:** Grafana k6, JavaScript/ES6, Docker.
 - **Tarefas:**
-  - [ ] Criar a pasta `k6/` no repositório com scripts de teste de carga:
-    - `k6/produtos-load-test.js`: Teste de carga e estresse nos endpoints REST de cadastro (`POST /api/produtos`) e consulta de produtos (`GET /api/produtos`).
-    - `k6/faturamento-concurrency-test.js`: Teste de alta concorrência simulando múltiplas emissões e impressões simultâneas de notas fiscais (`POST /api/v1/notas-fiscais` e `/imprimir`) utilizando o mesmo produto com estoque limitado para validar o Redlock e a Saga compensatória.
-  - [ ] Executar os testes de carga do k6 integrados ao ecossistema dockerizado para visualizar a alimentação dos dashboards do Grafana em tempo real e validar métricas de vazão (RPS), latência p95/p99 e taxa de erro.
-  - [ ] Documentar os cenários de testes k6 e os resultados obtidos no relatório final da solução.
+  - [x] Criar a pasta `k6/` no repositório com 10 scripts de teste cobrindo todos os cenários de mercado:
+    - Validação de 0 itens (`01-valida-zero-itens.js`), Emissão normal de 2 itens (`02-emissao-padrao-2-itens.js`), Payload massivo de 100 itens (`03-carga-pesada-100-itens.js`).
+    - Validação de Idempotência (`04-idempotencia.js`), Concorrência Redlock (`05-concorrencia-estoque.js`), Falha parcial na Saga (`06-falha-parcial-saga.js`).
+    - Spike Test Black Friday (`07-spike-black-friday.js`), Soak Test de Sustentação (`08-soak-sustentacao.js`), SignalR WebSockets (`09-signalr-websockets.js`) e Consultas (`10-leitura-consultas.js`).
+    - Criar o orquestrador master `k6/gateway-stress-suite.js` e o script de execução `./scripts/run-k6.sh`.
+  - [x] Executar os testes de carga do k6 integrados ao ecossistema dockerizado para visualizar a alimentação dos dashboards do Grafana em tempo real e validar métricas de vazão (RPS), latência p95/p99 e taxa de erro.
+  - [x] Documentar os cenários de testes k6 e os resultados obtidos no relatório final da solução.
 
 ---
 

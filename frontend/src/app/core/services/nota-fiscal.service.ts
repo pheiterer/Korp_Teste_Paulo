@@ -13,6 +13,7 @@ export class NotaFiscalService {
 
   readonly notasFiscais = signal<NotaFiscal[]>([]);
   readonly loading = signal<boolean>(false);
+  readonly pagination = signal<{ page: number; limit: number; total: number; total_pages: number } | null>(null);
 
   private normalizeNotaFiscal(item: any): NotaFiscal {
     return {
@@ -43,16 +44,28 @@ export class NotaFiscalService {
     };
   }
 
-  getNotasFiscais(): Observable<NotaFiscal[]> {
+  getNotasFiscais(page: number = 1, limit: number = 10, status: string = ''): Observable<{ items: NotaFiscal[]; pagination?: any }> {
     this.loading.set(true);
-    return this.http.get<any>(this.apiUrl).pipe(
+    const params: any = { page: page.toString(), limit: limit.toString() };
+    if (status && status !== 'Todas') {
+      params.status = status;
+    }
+    return this.http.get<any>(this.apiUrl, { params }).pipe(
       map(res => {
-        const rawList = Array.isArray(res) ? res : (res?.data || []);
-        return rawList.map((item: any) => this.normalizeNotaFiscal(item));
+        const dataObj = res?.data;
+        const rawList = Array.isArray(res)
+          ? res
+          : (Array.isArray(dataObj) ? dataObj : (dataObj?.items || []));
+        const pagination = dataObj?.pagination || null;
+        const normalized = rawList.map((item: any) => this.normalizeNotaFiscal(item));
+        return { items: normalized, pagination };
       }),
       tap({
-        next: (data) => {
-          this.notasFiscais.set(data || []);
+        next: (result) => {
+          this.notasFiscais.set(result.items || []);
+          if (result.pagination) {
+            this.pagination.set(result.pagination);
+          }
           this.loading.set(false);
         },
         error: () => {

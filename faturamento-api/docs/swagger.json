@@ -30,7 +30,27 @@
                 "tags": [
                     "Notas Fiscais"
                 ],
-                "summary": "Listar Notas Fiscais",
+                "summary": "Listar Notas Fiscais com Paginação e Filtros",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Número da página (padrão: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Quantidade de itens por página (padrão: 10, máx: 500)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtro por status (Aberta, EmProcessamento, Fechada, Cancelada)",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",

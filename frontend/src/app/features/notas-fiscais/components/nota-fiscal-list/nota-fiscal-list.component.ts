@@ -162,6 +162,17 @@ import { NotaFiscal, NotaFiscalStatus } from '../../../../core/models/nota-fisca
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination Controls -->
+        @if (notaFiscalService.pagination(); as pag) {
+          <div class="pagination-bar">
+            <span class="page-info">Página {{ pag.page }} de {{ pag.total_pages }} (Total: {{ pag.total }} notas)</span>
+            <div class="page-buttons">
+              <button type="button" class="btn-page" [disabled]="pag.page <= 1" (click)="mudarPagina(pag.page - 1)">◀ Anterior</button>
+              <button type="button" class="btn-page" [disabled]="pag.page >= pag.total_pages" (click)="mudarPagina(pag.page + 1)">Próxima ▶</button>
+            </div>
+          </div>
+        }
       }
     </div>
   `,
@@ -179,10 +190,7 @@ export class NotaFiscalListComponent implements OnInit {
   readonly imprimindoId = signal<string | number | null>(null);
 
   get notasFiltradas(): NotaFiscal[] {
-    const list = this.notaFiscalService.notasFiscais();
-    const filtro = this.statusFiltro();
-    if (filtro === 'Todas') return list;
-    return list.filter(n => n.status === filtro);
+    return this.notaFiscalService.notasFiscais();
   }
 
   ngOnInit(): void {
@@ -190,8 +198,13 @@ export class NotaFiscalListComponent implements OnInit {
     this.inscreverEventosSignalR();
   }
 
-  carregarNotas(): void {
-    this.notaFiscalService.getNotasFiscais().subscribe();
+  carregarNotas(page: number = 1): void {
+    this.notaFiscalService.getNotasFiscais(page, 10, this.statusFiltro()).subscribe();
+  }
+
+  mudarPagina(novaPagina: number): void {
+    if (novaPagina < 1) return;
+    this.carregarNotas(novaPagina);
   }
 
   private inscreverEventosSignalR(): void {
@@ -203,7 +216,8 @@ export class NotaFiscalListComponent implements OnInit {
           this.notaFiscalService.atualizarStatusNota(notificacao.notaFiscalId, 'Fechada');
           this.produtoService.getProdutos().subscribe();
           setTimeout(() => {
-            this.notaFiscalService.getNotasFiscais().subscribe();
+            const pag = this.notaFiscalService.pagination();
+            this.carregarNotas(pag ? pag.page : 1);
           }, 300);
         }
       });
@@ -215,7 +229,8 @@ export class NotaFiscalListComponent implements OnInit {
         if (notificacao.notaFiscalId) {
           this.notaFiscalService.atualizarStatusNota(notificacao.notaFiscalId, 'Cancelada', notificacao.reason);
           setTimeout(() => {
-            this.notaFiscalService.getNotasFiscais().subscribe();
+            const pag = this.notaFiscalService.pagination();
+            this.carregarNotas(pag ? pag.page : 1);
           }, 300);
         }
       });
@@ -223,6 +238,7 @@ export class NotaFiscalListComponent implements OnInit {
 
   setFiltro(status: string): void {
     this.statusFiltro.set(status);
+    this.carregarNotas(1);
   }
 
   toggleExpand(id: string | number): void {

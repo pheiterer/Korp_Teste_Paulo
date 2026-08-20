@@ -64,7 +64,7 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
             foreach (var codigoKey in chavesDistintas)
             {
                 var resourceKey = $"produto:{codigoKey}";
-                var lockObj = await _distributedLockService.AcquireLockAsync(resourceKey, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(5), context.CancellationToken);
+                var lockObj = await _distributedLockService.AcquireLockAsync(resourceKey, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(15), context.CancellationToken);
 
                 if (lockObj == null)
                 {
@@ -141,14 +141,30 @@ public class NotaFiscalEmitidaConsumer : IConsumer<NotaFiscalEmitidaEvent>
 
             _logger.LogInformation("Estoque debitado com sucesso para a Nota Fiscal {NotaFiscalId} com CorrelationId {CorrelationId}.", message.NotaFiscalId, correlationId);
         }
-        catch (Exception ex)
+        catch (DomainException ex)
         {
-            _logger.LogError(ex, "Falha ao debitar estoque para Nota Fiscal {NotaFiscalId} com CorrelationId {CorrelationId}. Publicando evento de falha.", message.NotaFiscalId, correlationId);
+            _logger.LogWarning(ex, "Falha de regra de negócio ao debitar estoque para Nota Fiscal {NotaFiscalId} (CorrelationId {CorrelationId}). Publicando cancelamento.", message.NotaFiscalId, correlationId);
 
-            // Publica evento de falha para acionar a Saga Compensatória no Faturamento
             await context.Publish(new AbatimentoEstoqueFalhouEvent(
                 message.NotaFiscalId,
                 ex.Message,
+                DateTime.UtcNow
+            ), context.CancellationToken);
+        }
+        catch (Exception ex)
+        {
+            var retryCount = context.GetRetryCount();
+            if (retryCount < 3)
+            {
+                _logger.LogWarning(ex, "Tentativa {Attempt}/3 de débito de estoque falhou para Nota Fiscal {NotaFiscalId} (CorrelationId {CorrelationId}). Reenfileirando no RabbitMQ.", retryCount + 1, message.NotaFiscalId, correlationId);
+                throw;
+            }
+
+            _logger.LogError(ex, "Falha definitiva após 3 retentativas para Nota Fiscal {NotaFiscalId} (CorrelationId {CorrelationId}). Cancelando nota.", message.NotaFiscalId, correlationId);
+
+            await context.Publish(new AbatimentoEstoqueFalhouEvent(
+                message.NotaFiscalId,
+                $"Falha de concorrência/infraestrutura após 3 retentativas: {ex.Message}",
                 DateTime.UtcNow
             ), context.CancellationToken);
         }

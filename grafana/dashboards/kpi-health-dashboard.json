@@ -358,6 +358,148 @@
         "x": 0,
         "y": 5
       },
+      "id": 105,
+      "title": "💻 Monitoramento de Recursos de Hardware (CPU & RAM das APIs)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Uso de CPU (%) dos microsserviços filtrados em tempo real",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "id": 201,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "(system_runtime_cpu_usage{job=~\"${service}\"} * 100) or (rate(process_cpu_seconds_total{job=~\"${service}\"}[1m]) * 100)",
+          "legendFormat": "{{job}} - CPU %",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "⚡ Consumo de CPU (%) das APIs",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Uso de Memória RAM dos microsserviços em tempo real",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "id": 202,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "(process_resident_memory_bytes{job=~\"${service}\"}) or (system_runtime_working_set{job=~\"${service}\"} * 1024 * 1024)",
+          "legendFormat": "{{job}} - RAM",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "🧠 Consumo de Memória RAM (MB/GB) das APIs",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
       "id": 104,
       "title": "🔍 Auditoria de Transações & Ciclo de Vida da Nota Fiscal (Correlation ID)",
       "type": "row"
@@ -482,7 +624,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 6
+        "y": 15
       },
       "id": 10,
       "options": {
@@ -512,6 +654,7 @@
           },
           "editorMode": "code",
           "expr": "{container=\"faturamento-api\"} |= \"EVENTO_SAGA_FINALIZADA\"",
+          "maxLines": 5000,
           "queryType": "range",
           "refId": "A"
         }
@@ -571,7 +714,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 15
+        "y": 24
       },
       "id": 101,
       "title": "⚡ Performance e Latência de Requisições HTTP (SLIs / SLOs)",
@@ -642,7 +785,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 16
+        "y": 25
       },
       "id": 5,
       "options": {
@@ -738,7 +881,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 16
+        "y": 25
       },
       "id": 6,
       "options": {
@@ -790,7 +933,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 33
       },
       "id": 102,
       "title": "📈 Vazão (RPS), Tráfego e Taxas de Erro",
@@ -857,7 +1000,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 25
+        "y": 34
       },
       "id": 7,
       "options": {
@@ -957,7 +1100,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 25
+        "y": 34
       },
       "id": 8,
       "options": {
@@ -1009,7 +1152,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 33
+        "y": 42
       },
       "id": 103,
       "title": "🪵 Agregação Centralizada de Logs Estruturados (Grafana Loki)",
@@ -1020,12 +1163,12 @@
         "type": "loki",
         "uid": "Loki"
       },
-      "description": "Logs estruturados em tempo real filtrados dinamicamente pelo microsserviço selecionado no topo.",
+      "description": "Logs de ERRO e WARNING em tempo real filtrados dinamicamente pelo microsserviço selecionado no topo.",
       "gridPos": {
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 34
+        "y": 43
       },
       "id": 9,
       "options": {
@@ -1045,12 +1188,13 @@
             "uid": "Loki"
           },
           "editorMode": "code",
-          "expr": "{container=~\"${service}\"}",
+          "expr": "{container=~\"${service}\"} |~ \"(?i)error|warn|warning|falha|exception\"",
+          "maxLines": 15,
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "Logs Estruturados dos Microsserviços (Tempo Real)",
+      "title": "Logs Estruturados de Erros & Warnings dos Microsserviços (Tempo Real)",
       "type": "logs"
     }
   ],
