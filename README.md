@@ -110,7 +110,7 @@ Na aplicação Frontend (desenvolvida na versão mais recente do **Angular**, ut
 3. **`@angular/forms` (`ReactiveFormsModule`, `FormBuilder`, `FormArray`, `Validators`)**: Construção de formulários reativos tipados, validações instantâneas de campos obrigatórios e criação dinâmica de múltiplos itens com quantidades em uma mesma nota fiscal através do `FormArray`.
 4. **`@angular/router`**: Gerenciamento de navegação cliente (SPA) com rotas standalone e lazy loading.
 5. **`@angular/common`**: Diretivas e pipes de formatação monetária brasileira (`CurrencyPipe` para `BRL R$`), formatação de texto e datas.
-6. **`vitest` & `jsdom`**: Framework moderno de testes unitários ultrarrápido configurado para a validação da camada de componentes e serviços do frontend (19/19 testes aprovados).
+6. **`vitest` & `jsdom`**: Framework moderno de testes unitários ultrarrápido configurado para a validação da camada de componentes e serviços do frontend.
 
 #### No Backend & Infraestrutura:
 - **`MassTransit.RabbitMQ` & `amqp091-go`**: Orquestração, mensageria e publicação de eventos de domínio no RabbitMQ.
