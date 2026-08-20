@@ -1,0 +1,15 @@
+<div class="notas-page">
+  <div class="page-header">
+    <h1 class="page-title">Gestão & Emissão de Notas Fiscais</h1>
+    <p class="page-subtitle">Gere notas com múltiplos itens e dispare a máquina de estados assíncrona.</p>
+  </div>
+
+  <div class="notas-grid">
+    <div class="grid-col-form">
+      <app-nota-fiscal-cadastro (notaCadastrada)="onNotaCadastrada()"></app-nota-fiscal-cadastro>
+    </div>
+    <div class="grid-col-list">
+      <app-nota-fiscal-list #notaList></app-nota-fiscal-list>
+    </div>
+  </div>
+</div>

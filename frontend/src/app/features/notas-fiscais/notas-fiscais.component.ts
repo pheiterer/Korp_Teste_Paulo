@@ -8,56 +8,8 @@ import { NotaFiscalService } from '../../core/services/nota-fiscal.service';
   selector: 'app-notas-fiscais',
   standalone: true,
   imports: [CommonModule, NotaFiscalCadastroComponent, NotaFiscalListComponent],
-  template: `
-    <div class="notas-page">
-      <div class="page-header">
-        <h1 class="page-title">Gestão & Emissão de Notas Fiscais</h1>
-        <p class="page-subtitle">Gere notas com múltiplos itens e dispare a máquina de estados assíncrona.</p>
-      </div>
-
-      <div class="notas-grid">
-        <div class="grid-col-form">
-          <app-nota-fiscal-cadastro (notaCadastrada)="onNotaCadastrada()"></app-nota-fiscal-cadastro>
-        </div>
-        <div class="grid-col-list">
-          <app-nota-fiscal-list #notaList></app-nota-fiscal-list>
-        </div>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .notas-page {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-
-    .page-header {
-      .page-title {
-        font-size: 1.75rem;
-        font-weight: 800;
-        color: var(--text-main);
-        letter-spacing: -0.02em;
-      }
-
-      .page-subtitle {
-        font-size: 0.9375rem;
-        color: var(--text-muted);
-        margin-top: 0.25rem;
-      }
-    }
-
-    .notas-grid {
-      display: grid;
-      grid-template-columns: minmax(460px, 500px) 1fr;
-      gap: 1.5rem;
-      align-items: start;
-
-      @media (max-width: 1024px) {
-        grid-template-columns: 1fr;
-      }
-    }
-  `]
+  templateUrl: './notas-fiscais.component.html',
+  styleUrls: ['./notas-fiscais.component.scss']
 })
 export class NotasFiscaisComponent {
   @ViewChild('notaList') notaList!: NotaFiscalListComponent;

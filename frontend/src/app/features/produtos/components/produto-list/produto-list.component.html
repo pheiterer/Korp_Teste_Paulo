@@ -1,0 +1,66 @@
+<div class="glass-card list-card">
+  <div class="list-header">
+    <div class="header-info">
+      <h3>Estoque & Lista de Produtos</h3>
+      <p class="subtitle">Saldos atualizados em tempo real a cada emissão ou abatimento de nota fiscal.</p>
+    </div>
+
+    <!-- Search Input -->
+    <div class="search-box">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        type="text"
+        [formControl]="searchControl"
+        placeholder="Buscar por código ou descrição..."
+        class="search-input"
+      />
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (produtoService.loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <span>Carregando saldo de produtos...</span>
+    </div>
+  } @else if (produtoService.produtos().length === 0) {
+    <!-- Empty State -->
+    <div class="empty-state">
+      <div class="empty-icon">📦</div>
+      <h4>Nenhum produto encontrado</h4>
+      <p>Cadastre um novo produto usando o formulário ao lado para iniciar a gestão de estoque.</p>
+    </div>
+  } @else {
+    <!-- Table -->
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Descrição</th>
+            <th class="text-right">Saldo Atual</th>
+            <th class="text-center">Situação</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (produto of produtoService.produtos(); track produto.codigo) {
+            <tr class="table-row">
+              <td class="font-mono code-cell">{{ produto.codigo }}</td>
+              <td class="desc-cell">{{ produto.descricao }}</td>
+              <td class="text-right font-mono saldo-cell">{{ produto.saldo }}</td>
+              <td class="text-center">
+                @if (produto.saldo > 10) {
+                  <span class="badge badge-success">Em Estoque</span>
+                } @else if (produto.saldo > 0) {
+                  <span class="badge badge-warning">Estoque Baixo</span>
+                } @else {
+                  <span class="badge badge-error">Esgotado</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

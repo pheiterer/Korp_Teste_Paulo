@@ -1,0 +1,15 @@
+<div class="produtos-page">
+  <div class="page-header">
+    <h1 class="page-title">Gestão de Produtos</h1>
+    <p class="page-subtitle">Cadastre produtos e acompanhe o saldo atualizado no estoque.</p>
+  </div>
+
+  <div class="produtos-grid">
+    <div class="grid-col-form">
+      <app-produto-cadastro (produtoCadastrado)="onProdutoCadastrado()"></app-produto-cadastro>
+    </div>
+    <div class="grid-col-list">
+      <app-produto-list #produtoList></app-produto-list>
+    </div>
+  </div>
+</div>
