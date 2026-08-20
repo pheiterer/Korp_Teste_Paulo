@@ -94,7 +94,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/v1/notas-fiscais",
+							"raw": "{{baseUrl}}/api/v1/notas-fiscais?page=1&limit=10",
 							"host": [
 								"{{baseUrl}}"
 							],
@@ -102,9 +102,27 @@
 								"api",
 								"v1",
 								"notas-fiscais"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Número da página"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Itens por página"
+								},
+								{
+									"key": "status",
+									"value": "Aberta",
+									"disabled": true,
+									"description": "Filtro por status (Aberta, EmProcessamento, Fechada, Cancelada)"
+								}
 							]
 						},
-						"description": "Retorna a lista de todas as Notas Fiscais salvas com seus respectivos itens."
+						"description": "Retorna a lista paginada de Notas Fiscais salvas com envelope { items, pagination }."
 					},
 					"response": []
 				},

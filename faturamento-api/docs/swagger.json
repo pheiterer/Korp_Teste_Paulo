@@ -23,7 +23,7 @@
     "paths": {
         "/api/v1/notas-fiscais": {
             "get": {
-                "description": "Retorna a lista de todas as notas fiscais com seus respectivos itens.",
+                "description": "Retorna a lista de notas fiscais paginada com seus respectivos itens (query params: page, limit, status).",
                 "produces": [
                     "application/json"
                 ],
@@ -239,37 +239,6 @@
                 }
             }
         },
-        "domain.NotaFiscal": {
-            "type": "object",
-            "properties": {
-                "id": { "type": "integer" },
-                "uuid": { "type": "string" },
-                "numero_sequencial": { "type": "integer" },
-                "status": { "type": "string" },
-                "motivo_cancelamento": { "type": "string" },
-                "valor_total": { "type": "number" },
-                "itens": {
-                    "type": "array",
-                    "items": { "$ref": "#/definitions/domain.NotaFiscalItem" }
-                },
-                "created_at": { "type": "string" },
-                "updated_at": { "type": "string" }
-            }
-        },
-        "domain.NotaFiscalItem": {
-            "type": "object",
-            "properties": {
-                "id": { "type": "integer" },
-                "nota_fiscal_id": { "type": "integer" },
-                "produto_id": { "type": "integer" },
-                "codigo_produto": { "type": "string" },
-                "quantidade": { "type": "integer" },
-                "preco_unitario": { "type": "number" },
-                "subtotal": { "type": "number" },
-                "motivo_erro": { "type": "string" },
-                "created_at": { "type": "string" }
-            }
-        },
         "handlers.ComponentHealth": {
             "type": "object",
             "properties": {
@@ -304,16 +273,23 @@
         "handlers.CreateNotaFiscalItemRequest": {
             "type": "object",
             "required": [
-                "preco_unitario",
                 "quantidade"
             ],
             "properties": {
+                "codigoProduto": {
+                    "type": "string"
+                },
                 "codigo_produto": {
                     "type": "string"
                 },
+                "precoUnitario": {
+                    "type": "number"
+                },
                 "preco_unitario": {
-                    "type": "number",
-                    "minimum": 0
+                    "type": "number"
+                },
+                "produtoId": {
+                    "type": "integer"
                 },
                 "produto_id": {
                     "type": "integer"

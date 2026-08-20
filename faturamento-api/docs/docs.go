@@ -25,7 +25,7 @@ const docTemplate = `{
     "paths": {
         "/api/v1/notas-fiscais": {
             "get": {
-                "description": "Retorna a lista de todas as notas fiscais com seus respectivos itens.",
+                "description": "Retorna a lista de notas fiscais paginada com seus respectivos itens (query params: page, limit, status).",
                 "produces": [
                     "application/json"
                 ],
@@ -275,16 +275,23 @@ const docTemplate = `{
         "handlers.CreateNotaFiscalItemRequest": {
             "type": "object",
             "required": [
-                "preco_unitario",
                 "quantidade"
             ],
             "properties": {
+                "codigoProduto": {
+                    "type": "string"
+                },
                 "codigo_produto": {
                     "type": "string"
                 },
+                "precoUnitario": {
+                    "type": "number"
+                },
                 "preco_unitario": {
-                    "type": "number",
-                    "minimum": 0
+                    "type": "number"
+                },
+                "produtoId": {
+                    "type": "integer"
                 },
                 "produto_id": {
                     "type": "integer"
