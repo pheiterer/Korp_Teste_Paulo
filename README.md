@@ -329,6 +329,34 @@ Isso iniciará os 12 containers da solução com verificações de saúde autom�
 
 ---
 
+## 🚀 Pontos de Melhoria Futura (Roadmap de Evoluções Arquiteturais)
+
+Estes pontos foram documentados como sugestões de evoluções técnicas e funcionais para futuras iterações da solução:
+
+1. **📦 CRUD Completo de Produtos (Edição & Exclusão Segura):**
+   - Atualmente o microsserviço de Estoque fornece Cadastro (`POST /api/produtos`) e Consulta (`GET /api/produtos`).
+   - *Evolução:* Adicionar alteração (`PUT /api/produtos/{codigo}`) e exclusão lógica/inativação com verificação prévia de saldo residual e notas fiscais vinculadas.
+
+2. **📄 Paginação Server-Side no Estoque:**
+   - A paginação server-side com envelope `{ items, pagination }` foi implementada na API de Faturamento (`GET /api/v1/notas-fiscais?page=1&limit=10`).
+   - *Evolução:* Estender o mesmo padrão de paginação e ordenação dinâmica para os endpoints de Produtos na API de Estoque.
+
+3. **🤖 Integração com Inteligência Artificial (Requisito Opcional b do PDF):**
+   - *Previsão de Demanda de Estoque (Stock Demand Forecasting):* Modelo de Machine Learning/IA para analisar a frequência de emissões de notas fiscais e prever a data provável de esgotamento de cada produto.
+   - *Assistente IA Copilot na UI:* Chatbot integrado à interface Angular em linguagem natural para consultas gerenciais ("Quais produtos possuem risco de esgotamento nos próximos 3 dias?").
+
+4. **🔄 Otimização da Experiência no Refresh da Página (`F5`):**
+   - Persistência do estado dos filtros, ordenação e página ativa via `sessionStorage` ou Query Parameters da URL.
+   - Reconexão transparente e graciosa do handshake WebSocket do SignalR ao recarregar a página sem necessidade de recarregar dados do zero.
+
+5. **🔐 Autenticação, Autorização e Segurança (JWT & RBAC):**
+   - Implementação de controle de acesso baseado em funções (Estoquista, Faturista, Administrador) com validação centralizada de tokens JWT no YARP API Gateway.
+
+6. **🚨 Alertas Automatizados de Observabilidade (Grafana Alerting):**
+   - Configuração de canais de notificação (Slack, E-mail ou Webhooks) no Grafana para picos de latência (p95 > 500ms), taxa de erro HTTP (5xx > 1%) ou oscilação na saúde dos microsserviços.
+
+---
+
 ## 📝 Status do Projeto (Roadmap)
 
 - [x] **Épico 1:** Infraestrutura e DevOps (Docker Compose multi-stage, GitHub Actions CI)
@@ -339,3 +367,4 @@ Isso iniciará os 12 containers da solução com verificações de saúde autom�
 - [x] **Épico 6:** Suíte E2E Automatizada (Newman CLI) e Detalhamento de Cancelamento no Frontend
 - [x] **Épico 7:** Dashboards Automatizados de KPIs/Hardware (Grafana) e Suíte Completa de Testes de Carga (k6)
 - [ ] **Épico 8:** Relatório Técnico Final e Gravação do Vídeo de Demonstração
+
