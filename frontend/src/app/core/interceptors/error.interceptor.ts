@@ -75,16 +75,17 @@ export function extractErrorMessage(error: HttpErrorResponse): { title: string; 
     }
   }
 
-  if (error.status === 0) {
-    title = 'Serviço Indisponível';
-    message = 'Não foi possível conectar ao servidor. Verifique se os microsserviços estão ativos.';
+  if (error.status === 0 || error.status === 502 || error.status === 503 || error.status === 504) {
+    title = 'Sistema Indisponível';
+    message = 'Não foi possível se conectar ao sistema no momento. Por favor, tente novamente em instantes.';
   } else if (error.status === 400 && title === 'Erro na Requisição') {
     title = 'Dados Inválidos';
   } else if (error.status === 404) {
     title = 'Não Encontrado';
     message = message === 'Ocorreu uma falha ao processar a requisição.' ? 'O recurso solicitado não foi encontrado.' : message;
   } else if (error.status === 500) {
-    title = 'Erro Interno do Servidor';
+    title = 'Indisponibilidade Temporária';
+    message = 'Ocorreu uma falha ao processar sua solicitação. Por favor, tente novamente em instantes.';
   }
 
   return { title, message };

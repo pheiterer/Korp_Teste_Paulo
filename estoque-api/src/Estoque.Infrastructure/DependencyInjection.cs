@@ -61,6 +61,14 @@ public static class DependencyInjection
                     h.Password(rabbitPass);
                 });
 
+                cfg.ConfigureJsonSerializerOptions(options =>
+                {
+                    options.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString | System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals;
+                    options.PropertyNameCaseInsensitive = true;
+                    options.Converters.Add(new Serialization.TolerantIntConverter());
+                    return options;
+                });
+
                 cfg.ReceiveEndpoint("nota-fiscal-emitida-estoque-queue", e =>
                 {
                     e.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(2)));

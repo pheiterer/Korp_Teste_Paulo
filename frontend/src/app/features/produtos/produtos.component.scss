@@ -1,0 +1,31 @@
+.produtos-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.page-header {
+  .page-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-main);
+    letter-spacing: -0.02em;
+  }
+
+  .page-subtitle {
+    font-size: 0.9375rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+  }
+}
+
+.produtos-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+
+  @media (max-width: 992px) {
+    grid-template-columns: 1fr;
+  }
+}

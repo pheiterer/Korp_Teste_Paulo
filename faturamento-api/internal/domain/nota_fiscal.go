@@ -28,14 +28,15 @@ var (
 
 // NotaFiscal representa a entidade principal de Faturamento no SQL Server.
 type NotaFiscal struct {
-	ID               uint             `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	UUID             string           `gorm:"type:varchar(36);not null;index;column:uuid" json:"uuid"`
-	NumeroSequencial int64            `gorm:"type:bigint;not null;index;column:numero_sequencial" json:"numero_sequencial"`
-	Status           string           `gorm:"type:varchar(20);not null;default:'Aberta';column:status" json:"status"`
-	ValorTotal       float64          `gorm:"type:decimal(18,2);not null;default:0.00;column:valor_total" json:"valor_total"`
-	Itens            []NotaFiscalItem `gorm:"foreignKey:NotaFiscalID;constraint:OnDelete:CASCADE;" json:"itens,omitempty"`
-	CreatedAt        time.Time        `gorm:"type:datetime2;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"created_at"`
-	UpdatedAt        time.Time        `gorm:"type:datetime2;not null;default:CURRENT_TIMESTAMP;column:updated_at" json:"updated_at"`
+	ID                 uint             `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
+	UUID               string           `gorm:"type:varchar(36);not null;index;column:uuid" json:"uuid"`
+	NumeroSequencial   int64            `gorm:"type:bigint;not null;index;column:numero_sequencial" json:"numero_sequencial"`
+	Status             string           `gorm:"type:varchar(20);not null;default:'Aberta';column:status" json:"status"`
+	MotivoCancelamento string           `gorm:"type:varchar(500);column:motivo_cancelamento" json:"motivo_cancelamento,omitempty"`
+	ValorTotal         float64          `gorm:"type:decimal(18,2);not null;default:0.00;column:valor_total" json:"valor_total"`
+	Itens              []NotaFiscalItem `gorm:"foreignKey:NotaFiscalID;constraint:OnDelete:CASCADE;" json:"itens,omitempty"`
+	CreatedAt          time.Time        `gorm:"type:datetime2;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"created_at"`
+	UpdatedAt          time.Time        `gorm:"type:datetime2;not null;default:CURRENT_TIMESTAMP;column:updated_at" json:"updated_at"`
 }
 
 // NotaFiscalItem representa os itens associados a uma Nota Fiscal.
@@ -47,6 +48,7 @@ type NotaFiscalItem struct {
 	Quantidade    int       `gorm:"type:int;not null;column:quantidade" json:"quantidade"`
 	PrecoUnitario float64   `gorm:"type:decimal(18,2);not null;default:0.00;column:preco_unitario" json:"preco_unitario"`
 	Subtotal      float64   `gorm:"type:decimal(18,2);not null;default:0.00;column:subtotal" json:"subtotal"`
+	MotivoErro    string    `gorm:"type:varchar(255);column:motivo_erro" json:"motivo_erro,omitempty"`
 	CreatedAt     time.Time `gorm:"type:datetime2;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"created_at"`
 }
 

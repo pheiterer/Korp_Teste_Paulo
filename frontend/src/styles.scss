@@ -78,6 +78,11 @@
   --badge-error-text: #E60039;
   --badge-error-border: rgba(230, 0, 57, 0.3);
 
+  /* Semantic Accents */
+  --accent-code: #1E3A52;
+  --accent-total: #059669;
+  --accent-primary: #1E3A52;
+
   /* Scrollbar */
   --scrollbar-track: rgba(30, 58, 82, 0.06);
   --scrollbar-thumb: rgba(30, 58, 82, 0.2);
@@ -152,15 +157,15 @@
   --badge-success-text: #34D399;
   --badge-success-border: rgba(16, 185, 129, 0.3);
 
-  --warning: #F59E0B;
-  --badge-warning-bg: rgba(245, 158, 11, 0.15);
-  --badge-warning-text: #FBBF24;
-  --badge-warning-border: rgba(245, 158, 11, 0.3);
-
   --error: #EF4444;
   --badge-error-bg: rgba(239, 68, 68, 0.15);
   --badge-error-text: #F87171;
   --badge-error-border: rgba(239, 68, 68, 0.3);
+
+  /* Semantic Accents */
+  --accent-code: #60A5FA;
+  --accent-total: #34D399;
+  --accent-primary: #60A5FA;
 
   /* Scrollbar */
   --scrollbar-track: rgba(15, 23, 42, 0.5);

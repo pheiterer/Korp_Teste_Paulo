@@ -32,15 +32,19 @@ definitions:
     properties:
       codigo_produto:
         type: string
+      codigoProduto:
+        type: string
       preco_unitario:
-        minimum: 0
+        type: number
+      precoUnitario:
         type: number
       produto_id:
+        type: integer
+      produtoId:
         type: integer
       quantidade:
         type: integer
     required:
-    - preco_unitario
     - quantidade
     type: object
   handlers.CreateNotaFiscalRequest:
@@ -82,8 +86,21 @@ info:
 paths:
   /api/v1/notas-fiscais:
     get:
-      description: Retorna a lista de todas as notas fiscais com seus respectivos
-        itens.
+      description: 'Retorna a lista de notas fiscais paginada com seus respectivos
+        itens (query params: page, limit, status).'
+      parameters:
+      - description: 'Número da página (padrão: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Quantidade de itens por página (padrão: 10, máx: 500)'
+        in: query
+        name: limit
+        type: integer
+      - description: Filtro por status (Aberta, EmProcessamento, Fechada, Cancelada)
+        in: query
+        name: status
+        type: string
       produces:
       - application/json
       responses:
@@ -95,7 +112,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/handlers.APIResponse'
-      summary: Listar Notas Fiscais
+      summary: Listar Notas Fiscais com Paginação e Filtros
       tags:
       - Notas Fiscais
     post:

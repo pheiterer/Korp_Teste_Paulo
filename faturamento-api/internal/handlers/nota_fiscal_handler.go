@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"faturamento-api/internal/cache"
 	"faturamento-api/internal/domain"
@@ -63,6 +64,7 @@ func (h *NotaFiscalHandler) CreateNotaFiscalHandler(c *gin.Context) {
 
 	// 1. Pre-validacao instantanea no Redis Cache
 	if h.redis != nil && h.redis.IsConnected(c.Request.Context()) {
+		var cacheErros []string
 		for _, itemReq := range req.Itens {
 			codigo := itemReq.CodigoProduto
 			if codigo == "" {
@@ -78,10 +80,13 @@ func (h *NotaFiscalHandler) CreateNotaFiscalHandler(c *gin.Context) {
 			if codigo != "" {
 				_, err := h.redis.GetProduto(c.Request.Context(), codigo)
 				if errors.Is(err, cache.ErrProdutoNaoEncontradoNoCache) {
-					SendError(c, http.StatusBadRequest, "PRODUTO_NAO_ENCONTRADO_NO_CACHE", "Produto '"+codigo+"' nao encontrado no cache de estoque (Redis)")
-					return
+					cacheErros = append(cacheErros, "Produto '"+codigo+"' nao encontrado no cache de estoque (Redis)")
 				}
 			}
+		}
+		if len(cacheErros) > 0 {
+			SendError(c, http.StatusBadRequest, "PRODUTO_NAO_ENCONTRADO_NO_CACHE", "Falha de validacao no cache: "+strings.Join(cacheErros, "; "))
+			return
 		}
 	}
 
@@ -198,6 +203,10 @@ func (h *NotaFiscalHandler) ImprimirNotaFiscalHandler(c *gin.Context) {
 
 	// 4. Publica o evento NotaFiscalEmitidaEvent no RabbitMQ
 	correlationID := c.GetHeader("X-Correlation-ID")
+	if correlationID == "" {
+		correlationID = nota.UUID
+	}
+
 	if h.rabbitMQ != nil {
 		if pubErr := h.rabbitMQ.PublishNotaFiscalEmitida(ctx, nota, correlationID); pubErr != nil {
 			SendError(c, http.StatusInternalServerError, "RABBITMQ_ERROR", "Falha ao enviar mensagem ao RabbitMQ", pubErr.Error())
@@ -211,22 +220,51 @@ func (h *NotaFiscalHandler) ImprimirNotaFiscalHandler(c *gin.Context) {
 	})
 }
 
-// ListNotasFiscaisHandler retorna todas as notas fiscais cadastradas.
-// @Summary Listar Notas Fiscais
-// @Description Retorna a lista de todas as notas fiscais com seus respectivos itens.
+// ListNotasFiscaisHandler retorna as notas fiscais cadastradas com suporte a paginação e filtro de status.
+// @Summary Listar Notas Fiscais com Paginação e Filtros
+// @Description Retorna a lista de notas fiscais paginada com seus respectivos itens (query params: page, limit, status).
 // @Tags Notas Fiscais
 // @Produce json
+// @Param page query int false "Número da página (padrão: 1)"
+// @Param limit query int false "Quantidade de itens por página (padrão: 10, máx: 500)"
+// @Param status query string false "Filtro por status (Aberta, EmProcessamento, Fechada, Cancelada)"
 // @Success 200 {object} APIResponse
 // @Failure 500 {object} APIResponse
 // @Router /api/v1/notas-fiscais [get]
 func (h *NotaFiscalHandler) ListNotasFiscaisHandler(c *gin.Context) {
-	notas, err := h.repo.FindAll(c.Request.Context())
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	status := strings.TrimSpace(c.Query("status"))
+
+	notas, total, err := h.repo.FindAllPaginated(c.Request.Context(), page, limit, status)
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, "DB_ERROR", "Erro ao buscar notas fiscais", err.Error())
 		return
 	}
 
-	SendSuccess(c, http.StatusOK, notas)
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 500 {
+		limit = 10
+	}
+
+	totalPages := 0
+	if limit > 0 {
+		totalPages = int((total + int64(limit) - 1) / int64(limit))
+	}
+
+	response := gin.H{
+		"items": notas,
+		"pagination": gin.H{
+			"page":        page,
+			"limit":       limit,
+			"total":       total,
+			"total_pages": totalPages,
+		},
+	}
+
+	SendSuccess(c, http.StatusOK, response)
 }
 
 // GetNotaFiscalByIDHandler busca uma nota fiscal especifica por ID ou UUID.

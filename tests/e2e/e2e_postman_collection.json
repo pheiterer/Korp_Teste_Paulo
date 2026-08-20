@@ -1,0 +1,550 @@
+{
+	"info": {
+		"_postman_id": "e2e-suite-korp-master",
+		"name": "Korp E2E Automated Master Test Suite",
+		"description": "Suíte Completa de Testes E2E cobrindo: 1) Fluxo Único com Abatimento, 2) Múltiplos Itens em uma Única Nota Fiscal, 3) Saga Compensatória com Cancelamento por Estoque Insuficiente, 4) Validação de Regras de Negócio e Payloads Inválidos.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "gatewayUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Cenário E2E: Healthcheck & Fluxo Único de Nota Fiscal",
+			"item": [
+				{
+					"name": "1.1 Healthcheck do API Gateway YARP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 200 OK', function () { pm.response.to.have.status(200); });",
+									"pm.test('Retorna status Healthy no gateway', function () { pm.expect(pm.response.text()).to.include('Healthy'); });",
+									"pm.test('Header X-Correlation-ID está presente', function () { pm.response.to.have.header('X-Correlation-ID'); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{gatewayUrl}}/health", "host": ["{{gatewayUrl}}"], "path": ["health"] }
+					}
+				},
+				{
+					"name": "1.2 Criar Produto A (Saldo 50)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.environment.set('e2e_prod1_code', 'PRD-E2E-SINGLE-' + Math.floor(Math.random() * 10000));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 201 Created ou 200 OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+									"var jsonData = pm.response.json();",
+									"pm.test('Retornou ID do produto criado', function () { pm.expect(jsonData.id).to.be.a('string'); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"codigo\": \"{{e2e_prod1_code}}\",\n  \"descricao\": \"Produto E2E Item Unico\",\n  \"saldoInicial\": 50\n}"
+						},
+						"url": { "raw": "{{gatewayUrl}}/api/produtos", "host": ["{{gatewayUrl}}"], "path": ["api", "produtos"] }
+					}
+				},
+				{
+					"name": "1.3 Criar Nota Fiscal (1 Item - Qtd 5)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 201 Created', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+									"var res = pm.response.json();",
+									"var nota = res.data || res;",
+									"pm.environment.set('e2e_nota1_id', nota.id);",
+									"pm.test('Nota Fiscal gerada com Status Aberta', function () { pm.expect(nota.status).to.eql('Aberta'); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"itens\": [\n    {\n      \"produto_id\": 1,\n      \"codigo_produto\": \"{{e2e_prod1_code}}\",\n      \"quantidade\": 5,\n      \"preco_unitario\": 100.00\n    }\n  ]\n}"
+						},
+						"url": { "raw": "{{gatewayUrl}}/api/v1/notas-fiscais", "host": ["{{gatewayUrl}}"], "path": ["api", "v1", "notas-fiscais"] }
+					}
+				},
+				{
+					"name": "1.4 Imprimir Nota Fiscal 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 200 OK', function () { pm.response.to.have.status(200); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": { "raw": "{{gatewayUrl}}/api/v1/notas-fiscais/{{e2e_nota1_id}}/imprimir", "host": ["{{gatewayUrl}}"], "path": ["api", "v1", "notas-fiscais", "{{e2e_nota1_id}}", "imprimir"] }
+					}
+				},
+				{
+					"name": "1.5 Validar Transição da Nota Fiscal 1 para FECHADA",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const start = Date.now(); while (Date.now() - start < 800) {}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 200 OK', function () { pm.response.to.have.status(200); });",
+									"var res = pm.response.json();",
+									"var nota = res.data || res;",
+									"pm.test('Nota Fiscal 1 transicionou para Fechada', function () { pm.expect(nota.status).to.eql('Fechada'); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{gatewayUrl}}/api/v1/notas-fiscais/{{e2e_nota1_id}}", "host": ["{{gatewayUrl}}"], "path": ["api", "v1", "notas-fiscais", "{{e2e_nota1_id}}"] }
+					}
+				},
+				{
+					"name": "1.6 Validar Abatimento de Estoque Produto A (50 -> 45)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 200 OK', function () { pm.response.to.have.status(200); });",
+									"var jsonData = pm.response.json();",
+									"pm.test('Saldo foi abatido para 45', function () { pm.expect(jsonData.saldo).to.eql(45); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{gatewayUrl}}/api/produtos/codigo/{{e2e_prod1_code}}", "host": ["{{gatewayUrl}}"], "path": ["api", "produtos", "codigo", "{{e2e_prod1_code}}"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Cenário E2E: Múltiplos Itens em uma Única Nota Fiscal",
+			"item": [
+				{
+					"name": "2.1 Criar Produto Multi 1 (Saldo 100)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.environment.set('e2e_m1_code', 'PRD-MULTI-1-' + Math.floor(Math.random() * 10000));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 201 Created', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"codigo\": \"{{e2e_m1_code}}\",\n  \"descricao\": \"Produto Multi 1\",\n  \"saldoInicial\": 100\n}"
+						},
+						"url": { "raw": "{{gatewayUrl}}/api/produtos", "host": ["{{gatewayUrl}}"], "path": ["api", "produtos"] }
+					}
+				},
+				{
+					"name": "2.2 Criar Produto Multi 2 (Saldo 50)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.environment.set('e2e_m2_code', 'PRD-MULTI-2-' + Math.floor(Math.random() * 10000));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 201 Created', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"codigo\": \"{{e2e_m2_code}}\",\n  \"descricao\": \"Produto Multi 2\",\n  \"saldoInicial\": 50\n}"
+						},
+						"url": { "raw": "{{gatewayUrl}}/api/produtos", "host": ["{{gatewayUrl}}"], "path": ["api", "produtos"] }
+					}
+				},
+				{
+					"name": "2.3 Criar Nota Fiscal com 2 Itens (Multi 1: 10un, Multi 2: 5un)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 201 Created', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+									"var res = pm.response.json();",
+									"var nota = res.data || res;",
+									"pm.environment.set('e2e_nota_multi_id', nota.id);",
+									"pm.test('Nota Fiscal contem 2 itens', function () { pm.expect(nota.itens.length).to.eql(2); });",
+									"pm.test('Valor total da nota calculado corretamente (200 + 150 = 350)', function () { pm.expect(nota.valor_total).to.eql(350); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"itens\": [\n    {\n      \"produto_id\": 1,\n      \"codigo_produto\": \"{{e2e_m1_code}}\",\n      \"quantidade\": 10,\n      \"preco_unitario\": 20.00\n    },\n    {\n      \"produto_id\": 2,\n      \"codigo_produto\": \"{{e2e_m2_code}}\",\n      \"quantidade\": 5,\n      \"preco_unitario\": 30.00\n    }\n  ]\n}"
+						},
+						"url": { "raw": "{{gatewayUrl}}/api/v1/notas-fiscais", "host": ["{{gatewayUrl}}"], "path": ["api", "v1", "notas-fiscais"] }
+					}
+				},
+				{
+					"name": "2.4 Imprimir Nota Fiscal com Múltiplos Itens",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 200 OK', function () { pm.response.to.have.status(200); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": { "raw": "{{gatewayUrl}}/api/v1/notas-fiscais/{{e2e_nota_multi_id}}/imprimir", "host": ["{{gatewayUrl}}"], "path": ["api", "v1", "notas-fiscais", "{{e2e_nota_multi_id}}", "imprimir"] }
+					}
+				},
+				{
+					"name": "2.5 Validar Status FECHADA na Nota Fiscal de Múltiplos Itens",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const start = Date.now(); while (Date.now() - start < 1200) {}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 200 OK', function () { pm.response.to.have.status(200); });",
+									"var res = pm.response.json();",
+									"var nota = res.data || res;",
+									"pm.test('Nota Fiscal com múltiplos itens transicionou para Fechada', function () { pm.expect(nota.status).to.eql('Fechada'); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{gatewayUrl}}/api/v1/notas-fiscais/{{e2e_nota_multi_id}}", "host": ["{{gatewayUrl}}"], "path": ["api", "v1", "notas-fiscais", "{{e2e_nota_multi_id}}"] }
+					}
+				},
+				{
+					"name": "2.6 Validar Abatimento no Produto Multi 1 (100 -> 90)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 200 OK', function () { pm.response.to.have.status(200); });",
+									"var jsonData = pm.response.json();",
+									"pm.test('Saldo do Produto Multi 1 foi abatido de 100 para 90', function () { pm.expect(jsonData.saldo).to.eql(90); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{gatewayUrl}}/api/produtos/codigo/{{e2e_m1_code}}", "host": ["{{gatewayUrl}}"], "path": ["api", "produtos", "codigo", "{{e2e_m1_code}}"] }
+					}
+				},
+				{
+					"name": "2.7 Validar Abatimento no Produto Multi 2 (50 -> 45)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 200 OK', function () { pm.response.to.have.status(200); });",
+									"var jsonData = pm.response.json();",
+									"pm.test('Saldo do Produto Multi 2 foi abatido de 50 para 45', function () { pm.expect(jsonData.saldo).to.eql(45); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{gatewayUrl}}/api/produtos/codigo/{{e2e_m2_code}}", "host": ["{{gatewayUrl}}"], "path": ["api", "produtos", "codigo", "{{e2e_m2_code}}"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Cenário E2E: Saga Compensatória (Estoque Insuficiente -> Nota Cancelada)",
+			"item": [
+				{
+					"name": "3.1 Criar Produto com Saldo Baixo (Saldo 2)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.environment.set('e2e_low_code', 'PRD-LOW-' + Math.floor(Math.random() * 10000));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 201 Created', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"codigo\": \"{{e2e_low_code}}\",\n  \"descricao\": \"Produto com Estoque Baixo\",\n  \"saldoInicial\": 2\n}"
+						},
+						"url": { "raw": "{{gatewayUrl}}/api/produtos", "host": ["{{gatewayUrl}}"], "path": ["api", "produtos"] }
+					}
+				},
+				{
+					"name": "3.2 Criar Nota Fiscal com Quantidade Acima do Saldo (Qtd 10)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 201 Created', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+									"var res = pm.response.json();",
+									"var nota = res.data || res;",
+									"pm.environment.set('e2e_nota_low_id', nota.id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"itens\": [\n    {\n      \"produto_id\": 1,\n      \"codigo_produto\": \"{{e2e_low_code}}\",\n      \"quantidade\": 10,\n      \"preco_unitario\": 50.00\n    }\n  ]\n}"
+						},
+						"url": { "raw": "{{gatewayUrl}}/api/v1/notas-fiscais", "host": ["{{gatewayUrl}}"], "path": ["api", "v1", "notas-fiscais"] }
+					}
+				},
+				{
+					"name": "3.3 Imprimir Nota Fiscal com Estoque Insuficiente (Dispara Saga)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 200 OK', function () { pm.response.to.have.status(200); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": { "raw": "{{gatewayUrl}}/api/v1/notas-fiscais/{{e2e_nota_low_id}}/imprimir", "host": ["{{gatewayUrl}}"], "path": ["api", "v1", "notas-fiscais", "{{e2e_nota_low_id}}", "imprimir"] }
+					}
+				},
+				{
+					"name": "3.4 Validar Transição da Nota Fiscal para CANCELADA (AbatimentoEstoqueFalhou)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const start = Date.now(); while (Date.now() - start < 800) {}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 200 OK', function () { pm.response.to.have.status(200); });",
+									"var res = pm.response.json();",
+									"var nota = res.data || res;",
+									"pm.test('Nota Fiscal transicionou para CANCELADA via Saga Compensatória', function () { pm.expect(nota.status).to.eql('Cancelada'); });",
+									"pm.test('Motivo do cancelamento está persistido na resposta', function () { pm.expect(nota.motivo_cancelamento || nota.motivoCancelamento).to.exist; });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{gatewayUrl}}/api/v1/notas-fiscais/{{e2e_nota_low_id}}", "host": ["{{gatewayUrl}}"], "path": ["api", "v1", "notas-fiscais", "{{e2e_nota_low_id}}"] }
+					}
+				},
+				{
+					"name": "3.5 Validar que o Estoque NÃO foi debitado (Permanece Saldo 2)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 200 OK', function () { pm.response.to.have.status(200); });",
+									"var jsonData = pm.response.json();",
+									"pm.test('Saldo do produto permaneceu intacto em 2', function () { pm.expect(jsonData.saldo).to.eql(2); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{gatewayUrl}}/api/produtos/codigo/{{e2e_low_code}}", "host": ["{{gatewayUrl}}"], "path": ["api", "produtos", "codigo", "{{e2e_low_code}}"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Cenário E2E: Regras de Negócio e Validações de Erro",
+			"item": [
+				{
+					"name": "4.1 Erro: Tentar Re-imprimir Nota Fiscal Já Fechada (HTTP 400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 400 Bad Request', function () { pm.response.to.have.status(400); });",
+									"var res = pm.response.json();",
+									"pm.test('Retornou erro de status invalido para re-impressao', function () {",
+									"    pm.expect(res.error.code || res.code || res.message).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": { "raw": "{{gatewayUrl}}/api/v1/notas-fiscais/{{e2e_nota1_id}}/imprimir", "host": ["{{gatewayUrl}}"], "path": ["api", "v1", "notas-fiscais", "{{e2e_nota1_id}}", "imprimir"] }
+					}
+				},
+				{
+					"name": "4.2 Erro: Criar Nota Fiscal Sem Itens (HTTP 400 Bad Request)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status Code é 400 Bad Request', function () { pm.response.to.have.status(400); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"itens\": []\n}"
+						},
+						"url": { "raw": "{{gatewayUrl}}/api/v1/notas-fiscais", "host": ["{{gatewayUrl}}"], "path": ["api", "v1", "notas-fiscais"] }
+					}
+				}
+			]
+		}
+	]
+}

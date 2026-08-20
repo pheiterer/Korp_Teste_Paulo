@@ -1,8 +1,8 @@
 {
 	"info": {
 		"_postman_id": "f8a9e102-3c41-4b89-a21b-90f7a6543210",
-		"name": "API de Faturamento (Go - Issues 7, 8 e 9)",
-		"description": "Collection do Postman para testar os endpoints da API RESTful de Faturamento em Go, incluindo criacao de notas fiscais, impressao/finalizacao e disparo de eventos para o RabbitMQ.",
+		"name": "API de Faturamento (Go / Golang - Completa)",
+		"description": "Collection completa do Postman para testar os endpoints da API RESTful de Faturamento em Go, incluindo criação de notas fiscais, consulta por ID/UUID, listagem, impressão/finalização e disparo de eventos para o RabbitMQ.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
@@ -14,7 +14,7 @@
 	],
 	"item": [
 		{
-			"name": "1. Observabilidade & Saude",
+			"name": "1. Observabilidade & Saúde",
 			"item": [
 				{
 					"name": "1.1 Health Check (Ping)",
@@ -30,7 +30,7 @@
 								"health"
 							]
 						},
-						"description": "Verifica a saude basica do servidor HTTP de Faturamento em Go."
+						"description": "Verifica a saúde básica do servidor HTTP de Faturamento em Go."
 					},
 					"response": []
 				},
@@ -50,14 +50,14 @@
 								"ping"
 							]
 						},
-						"description": "Endpoint de teste de conectividade da versao v1 da API."
+						"description": "Endpoint de teste de conectividade da versão v1 da API."
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "2. Gestao de Notas Fiscais (Issue 9)",
+			"name": "2. Gestão de Notas Fiscais",
 			"item": [
 				{
 					"name": "2.1 Criar Nota Fiscal (Status Aberta)",
@@ -94,7 +94,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/v1/notas-fiscais",
+							"raw": "{{baseUrl}}/api/v1/notas-fiscais?page=1&limit=10",
 							"host": [
 								"{{baseUrl}}"
 							],
@@ -102,9 +102,27 @@
 								"api",
 								"v1",
 								"notas-fiscais"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Número da página"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Itens por página"
+								},
+								{
+									"key": "status",
+									"value": "Aberta",
+									"disabled": true,
+									"description": "Filtro por status (Aberta, EmProcessamento, Fechada, Cancelada)"
+								}
 							]
 						},
-						"description": "Retorna a lista de todas as Notas Fiscais salvas com seus respectivos itens."
+						"description": "Retorna a lista paginada de Notas Fiscais salvas com envelope { items, pagination }."
 					},
 					"response": []
 				},
@@ -125,7 +143,7 @@
 								"1"
 							]
 						},
-						"description": "Retorna os detalhes da Nota Fiscal de ID 1."
+						"description": "Retorna os detalhes da Nota Fiscal por ID numérico ou UUID."
 					},
 					"response": []
 				},
@@ -153,17 +171,17 @@
 								"imprimir"
 							]
 						},
-						"description": "Verifica se a Nota Fiscal 1 esta 'Aberta', altera o status para 'Fechada' no SQL Server e dispara o evento NotaFiscalEmitidaEvent para o RabbitMQ com X-Correlation-ID."
+						"description": "Verifica se a Nota Fiscal está 'Aberta', altera o status para 'Fechada' no SQL Server e dispara o evento NotaFiscalEmitidaEvent para o RabbitMQ com X-Correlation-ID."
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "3. Validacoes e Trata de Erros",
+			"name": "3. Validações e Tratamento de Erros",
 			"item": [
 				{
-					"name": "3.1 Erro - Re-impressao de Nota Ja Fechada (Status Invalido 400)",
+					"name": "3.1 Erro - Re-impressão de Nota Já Fechada (Status Inválido 400)",
 					"request": {
 						"method": "POST",
 						"header": [],
@@ -180,7 +198,7 @@
 								"imprimir"
 							]
 						},
-						"description": "Tenta imprimir novamente uma Nota Fiscal que ja esta 'Fechada'. Deve retornar HTTP 400 Bad Request com a mensagem: apenas notas fiscais com status 'Aberta' podem ser impressas/finalizadas."
+						"description": "Tenta imprimir novamente uma Nota Fiscal que já está 'Fechada'. Deve retornar HTTP 400 Bad Request."
 					},
 					"response": []
 				},
@@ -209,12 +227,12 @@
 								"notas-fiscais"
 							]
 						},
-						"description": "Tenta criar uma Nota Fiscal sem itens. Deve retornar erro de validacao 400 Bad Request."
+						"description": "Tenta criar uma Nota Fiscal sem itens. Deve retornar erro de validação 400 Bad Request."
 					},
 					"response": []
 				},
 				{
-					"name": "3.3 Erro - Nota Fiscal Nao Encontrada (404 Not Found)",
+					"name": "3.3 Erro - Nota Fiscal Não Encontrada (404 Not Found)",
 					"request": {
 						"method": "GET",
 						"header": [],

@@ -76,6 +76,7 @@ func main() {
 	// Middlewares globais
 	router.Use(gin.Logger())
 	router.Use(middleware.CorrelationIDMiddleware())
+	router.Use(middleware.PrometheusMetricsMiddleware())
 	router.Use(handlers.GlobalErrorHandler())
 
 	// 6. Mapeamento da Rota Interativa do Swagger UI
